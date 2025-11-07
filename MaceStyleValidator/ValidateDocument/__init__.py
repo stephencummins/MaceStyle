@@ -103,8 +103,18 @@ def download_file(token, file_path):
     site_response.raise_for_status()
     site_id = site_response.json()["id"]
 
+    # Convert server-relative URL to drive-relative path
+    # Remove site path and "Shared Documents" from the path
+    # E.g., "/sites/StyleValidation/Shared Documents/test.docx" -> "/test.docx"
+    drive_relative_path = file_path
+    if "Shared Documents/" in file_path:
+        drive_relative_path = "/" + file_path.split("Shared Documents/", 1)[1]
+    elif "Shared Documents" in file_path and file_path.endswith("Shared Documents"):
+        # Handle case where path ends with "Shared Documents" (folder itself)
+        drive_relative_path = "/"
+
     # Download file
-    file_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{file_path}:/content"
+    file_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{drive_relative_path}:/content"
     file_response = requests.get(file_url, headers=headers)
     file_response.raise_for_status()
 
@@ -124,9 +134,19 @@ def upload_file(token, file_stream, target_path):
     site_response.raise_for_status()
     site_id = site_response.json()["id"]
 
+    # Convert server-relative URL to drive-relative path
+    # Remove site path and "Shared Documents" from the path
+    # E.g., "/sites/StyleValidation/Shared Documents/test.docx" -> "/test.docx"
+    drive_relative_path = target_path
+    if "Shared Documents/" in target_path:
+        drive_relative_path = "/" + target_path.split("Shared Documents/", 1)[1]
+    elif "Shared Documents" in target_path and target_path.endswith("Shared Documents"):
+        # Handle case where path ends with "Shared Documents" (folder itself)
+        drive_relative_path = "/"
+
     # Upload file
     file_stream.seek(0)
-    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{target_path}:/content"
+    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{drive_relative_path}:/content"
     upload_response = requests.put(upload_url, headers=headers, data=file_stream.read())
     upload_response.raise_for_status()
 
