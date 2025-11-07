@@ -213,23 +213,44 @@ def check_word_fonts(doc, rule):
     """Check and fix font issues in Word doc"""
     issues = []
     fixes = []
-    
-    # Example: Check Heading 1 font
-    if rule['check_value'] == 'Heading1Font':
-        expected_font = rule['expected_value']
-        
+    expected_font = rule['expected_value']
+
+    # Check all text fonts
+    if rule['check_value'] == 'AllTextFont':
+        issue_count = 0
+        fix_count = 0
+
+        for paragraph in doc.paragraphs:
+            for run in paragraph.runs:
+                if run.text.strip():  # Only check runs with actual text
+                    current_font = run.font.name
+
+                    if current_font != expected_font:
+                        issue_count += 1
+
+                        if rule['auto_fix']:
+                            run.font.name = expected_font
+                            fix_count += 1
+
+        if issue_count > 0:
+            issues.append(f"Found {issue_count} text runs with incorrect font")
+        if fix_count > 0:
+            fixes.append(f"Fixed {fix_count} text runs to {expected_font}")
+
+    # Check Heading 1 font
+    elif rule['check_value'] == 'Heading1Font':
         for paragraph in doc.paragraphs:
             if paragraph.style.name == 'Heading 1':
                 current_font = paragraph.runs[0].font.name if paragraph.runs else None
-                
+
                 if current_font != expected_font:
                     issues.append(f"Heading 1 has incorrect font: {current_font}")
-                    
+
                     if rule['auto_fix']:
                         for run in paragraph.runs:
                             run.font.name = expected_font
                         fixes.append(f"Fixed Heading 1 font to {expected_font}")
-    
+
     return {'issues': issues, 'fixes': fixes}
 
 def check_word_colors(doc, rule):
