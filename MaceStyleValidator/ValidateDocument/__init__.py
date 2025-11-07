@@ -91,6 +91,11 @@ def fetch_validation_rules(token):
 
 def download_file(token, file_path):
     """Download file from SharePoint using Graph API"""
+    if not file_path:
+        raise ValueError("file_path cannot be None or empty")
+
+    logging.info(f"Downloading file: {file_path}")
+
     site_info = get_site_info()
     headers = {
         "Authorization": f"Bearer {token}",
@@ -113,15 +118,23 @@ def download_file(token, file_path):
         # Handle case where path ends with "Shared Documents" (folder itself)
         drive_relative_path = "/"
 
+    logging.info(f"Using drive-relative path: {drive_relative_path}")
+
     # Download file
     file_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{drive_relative_path}:/content"
     file_response = requests.get(file_url, headers=headers)
     file_response.raise_for_status()
 
+    logging.info(f"File downloaded successfully, size: {len(file_response.content)} bytes")
     return BytesIO(file_response.content)
 
 def upload_file(token, file_stream, target_path):
     """Upload file to SharePoint using Graph API"""
+    if not target_path:
+        raise ValueError("target_path cannot be None or empty")
+
+    logging.info(f"Uploading file to: {target_path}")
+
     site_info = get_site_info()
     headers = {
         "Authorization": f"Bearer {token}",
@@ -144,13 +157,17 @@ def upload_file(token, file_stream, target_path):
         # Handle case where path ends with "Shared Documents" (folder itself)
         drive_relative_path = "/"
 
+    logging.info(f"Using drive-relative path for upload: {drive_relative_path}")
+
     # Upload file
     file_stream.seek(0)
     upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{drive_relative_path}:/content"
     upload_response = requests.put(upload_url, headers=headers, data=file_stream.read())
     upload_response.raise_for_status()
 
-    return upload_response.json().get("webUrl")
+    web_url = upload_response.json().get("webUrl")
+    logging.info(f"File uploaded successfully: {web_url}")
+    return web_url
 
 def update_validation_status(token, item_id, status, report_url, list_name="Documents"):
     """Update ValidationStatus column in document library using Graph API"""
@@ -183,26 +200,34 @@ def update_validation_status(token, item_id, status, report_url, list_name="Docu
 # ============================================
 def validate_word_document(file_stream, rules):
     """Validate Word document against rules"""
+    logging.info("Loading Word document...")
     doc = Document(file_stream)
+    logging.info(f"Document loaded. Paragraphs: {len(doc.paragraphs)}, Tables: {len(doc.tables)}")
+
     issues = []
     fixes_applied = []
-    
+
     # Filter rules for Word documents
     word_rules = [r for r in rules if r['doc_type'] == 'Word']
-    
-    for rule in word_rules:
+    logging.info(f"Applying {len(word_rules)} Word validation rules")
+
+    for idx, rule in enumerate(word_rules):
+        logging.info(f"Processing rule {idx+1}/{len(word_rules)}: {rule.get('title', 'Unknown')}")
+
         if rule['rule_type'] == 'Font':
             result = check_word_fonts(doc, rule)
             issues.extend(result['issues'])
             fixes_applied.extend(result['fixes'])
-            
+
         elif rule['rule_type'] == 'Color':
             result = check_word_colors(doc, rule)
             issues.extend(result['issues'])
             fixes_applied.extend(result['fixes'])
-            
+
         # Add more rule types as needed
-    
+
+    logging.info(f"Validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
+
     return {
         'document': doc,
         'issues': issues,
@@ -215,6 +240,8 @@ def check_word_fonts(doc, rule):
     fixes = []
     expected_font = rule['expected_value']
 
+    logging.info(f"Checking fonts: {rule['check_value']} -> {expected_font}")
+
     # Check all text fonts
     if rule['check_value'] == 'AllTextFont':
         issue_count = 0
@@ -225,7 +252,8 @@ def check_word_fonts(doc, rule):
                 if run.text.strip():  # Only check runs with actual text
                     current_font = run.font.name
 
-                    if current_font != expected_font:
+                    # Handle None font names or mismatches
+                    if current_font is None or current_font != expected_font:
                         issue_count += 1
 
                         if rule['auto_fix']:
@@ -237,13 +265,15 @@ def check_word_fonts(doc, rule):
         if fix_count > 0:
             fixes.append(f"Fixed {fix_count} text runs to {expected_font}")
 
+        logging.info(f"Font check complete: {issue_count} issues, {fix_count} fixes")
+
     # Check Heading 1 font
     elif rule['check_value'] == 'Heading1Font':
         for paragraph in doc.paragraphs:
             if paragraph.style.name == 'Heading 1':
                 current_font = paragraph.runs[0].font.name if paragraph.runs else None
 
-                if current_font != expected_font:
+                if current_font is None or current_font != expected_font:
                     issues.append(f"Heading 1 has incorrect font: {current_font}")
 
                     if rule['auto_fix']:
@@ -369,71 +399,87 @@ def generate_report(file_name, issues, fixes_applied):
 # MAIN FUNCTION
 # ============================================
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('Style validation function triggered')
-    
+    logging.info('=== STYLE VALIDATION FUNCTION TRIGGERED ===')
+
     try:
         # 1. Parse request
+        logging.info('Step 1: Parsing request...')
         req_body = req.get_json()
         item_id = req_body.get('itemId')
         file_url = req_body.get('fileUrl')  # Server-relative URL
         file_name = req_body.get('fileName')
-        file_extension = os.path.splitext(file_name)[1].lower()
-        
-        logging.info(f"Validating file: {file_name} (ID: {item_id})")
+        file_extension = os.path.splitext(file_name)[1].lower() if file_name else ''
+
+        logging.info(f"Request params - File: {file_name}, ID: {item_id}, URL: {file_url}")
 
         # 2. Get Microsoft Graph API token
+        logging.info('Step 2: Acquiring Graph API token...')
         token = get_graph_token()
+        logging.info('Token acquired successfully')
 
         # 3. Update status to "Validating..."
+        logging.info('Step 3: Updating validation status...')
         update_validation_status(token, item_id, "Validating...", None)
 
         # 4. Fetch validation rules
+        logging.info('Step 4: Fetching validation rules...')
         rules = fetch_validation_rules(token)
         logging.info(f"Loaded {len(rules)} validation rules")
 
         # 5. Download file
+        logging.info('Step 5: Downloading file...')
         file_stream = download_file(token, file_url)
         
         # 6. Validate based on file type
+        logging.info(f'Step 6: Validating document type {file_extension}...')
         if file_extension in ['.docx', '.doc']:
             result = validate_word_document(file_stream, rules)
-            
+
             # Save fixed document
+            logging.info('Saving fixed document to stream...')
             fixed_stream = BytesIO()
             result['document'].save(fixed_stream)
             fixed_stream.seek(0)
-            
+
         elif file_extension in ['.vsdx', '.vsd']:
             result = validate_visio_document(file_stream, rules)
-            
+
             # Save fixed document
             fixed_stream = BytesIO()
             result['document'].save_vsdx(fixed_stream)
             fixed_stream.seek(0)
-            
+
         else:
+            logging.error(f"Unsupported file type: {file_extension}")
             return func.HttpResponse(
                 json.dumps({"error": f"Unsupported file type: {file_extension}"}),
                 status_code=400
             )
-        
+
         # 7. Upload fixed file (overwrite original)
         if result['fixes_applied']:
+            logging.info(f'Step 7: Uploading fixed document ({len(result["fixes_applied"])} fixes)...')
             upload_file(token, fixed_stream, file_url)
-            logging.info(f"Applied {len(result['fixes_applied'])} fixes")
+        else:
+            logging.info('Step 7: No fixes to upload')
 
         # 8. Generate and upload report
+        logging.info('Step 8: Generating and uploading report...')
         report_html = generate_report(file_name, result['issues'], result['fixes_applied'])
         report_stream = BytesIO(report_html.encode('utf-8'))
         report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.html"
-        report_folder = os.path.dirname(file_url)
-        report_url = upload_file(token, report_stream, f"{report_folder}/{report_filename}")
+        report_folder = os.path.dirname(file_url) if file_url else ""
+        report_path = f"{report_folder}/{report_filename}" if report_folder else f"/{report_filename}"
+        logging.info(f"Report will be uploaded to: {report_path}")
+        report_url = upload_file(token, report_stream, report_path)
 
         # 9. Update validation status
+        logging.info('Step 9: Updating final validation status...')
         final_status = "Passed" if len(result['issues']) == 0 else "Failed"
         update_validation_status(token, item_id, final_status, report_url)
-        
+
         # 10. Return response
+        logging.info(f'=== VALIDATION COMPLETE: {final_status} ===')
         return func.HttpResponse(
             json.dumps({
                 "status": final_status,
@@ -446,9 +492,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     except Exception as e:
-        logging.error(f"Validation failed: {str(e)}")
+        logging.error(f"=== VALIDATION FAILED ===")
+        logging.error(f"Error: {str(e)}")
+        logging.error(f"Error type: {type(e).__name__}")
+        import traceback
+        logging.error(f"Traceback: {traceback.format_exc()}")
         return func.HttpResponse(
-            json.dumps({"error": str(e)}),
+            json.dumps({
+                "error": str(e),
+                "error_type": type(e).__name__
+            }),
             mimetype="application/json",
             status_code=500
         )
