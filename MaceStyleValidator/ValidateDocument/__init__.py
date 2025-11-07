@@ -1,0 +1,413 @@
+import azure.functions as func
+import logging
+import json
+import os
+from io import BytesIO
+from datetime import datetime, timezone
+from docx import Document
+from docx.shared import Pt, RGBColor
+from vsdx import VisioFile
+import msal
+import requests
+
+# ============================================
+# CONFIGURATION
+# ============================================
+def get_graph_token():
+    """Get Microsoft Graph API access token using MSAL"""
+    tenant_id = os.environ.get("SHAREPOINT_TENANT_ID", "2ab0866e-23d6-4688-be97-ce9f447135d8")
+    client_id = os.environ.get("SHAREPOINT_CLIENT_ID", "c7859dae-6997-448f-9530-7166fe857e75")
+    client_secret = os.environ.get("SHAREPOINT_CLIENT_SECRET", "DlD8Q~_NNgnpnVxKWsZTiz53DuNYrfrAjqkCDaP1")
+
+    authority = f"https://login.microsoftonline.com/{tenant_id}"
+    scope = ["https://graph.microsoft.com/.default"]
+
+    app = msal.ConfidentialClientApplication(
+        client_id,
+        authority=authority,
+        client_credential=client_secret
+    )
+
+    result = app.acquire_token_for_client(scopes=scope)
+
+    if "access_token" in result:
+        return result["access_token"]
+    else:
+        raise Exception(f"Failed to acquire token: {result.get('error_description', result)}")
+
+def get_site_info():
+    """Get SharePoint site information"""
+    site_url = os.environ.get("SHAREPOINT_SITE_URL", "https://0rxf2.sharepoint.com/sites/StyleValidation")
+
+    # Extract hostname and site path
+    # Format: https://tenant.sharepoint.com/sites/sitename
+    parts = site_url.replace("https://", "").split("/")
+    hostname = parts[0]
+    site_path = "/" + "/".join(parts[1:]) if len(parts) > 1 else ""
+
+    return {
+        "hostname": hostname,
+        "site_path": site_path,
+        "full_url": site_url
+    }
+
+# ============================================
+# SHAREPOINT OPERATIONS
+# ============================================
+def fetch_validation_rules(token):
+    """Fetch rules from SharePoint 'Style Rules' list using Graph API"""
+    site_info = get_site_info()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+
+    # Get site ID first
+    site_url = f"https://graph.microsoft.com/v1.0/sites/{site_info['hostname']}:{site_info['site_path']}"
+    site_response = requests.get(site_url, headers=headers)
+    site_response.raise_for_status()
+    site_id = site_response.json()["id"]
+
+    # Get list items
+    list_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/Style Rules/items?expand=fields"
+    list_response = requests.get(list_url, headers=headers)
+    list_response.raise_for_status()
+
+    rules = []
+    for item in list_response.json().get("value", []):
+        fields = item.get("fields", {})
+        rules.append({
+            'title': fields.get('Title'),
+            'rule_type': fields.get('RuleType'),
+            'doc_type': fields.get('DocumentType'),
+            'check_value': fields.get('CheckValue'),
+            'expected_value': fields.get('ExpectedValue'),
+            'auto_fix': fields.get('AutoFix'),
+            'priority': fields.get('Priority', 999)
+        })
+
+    rules.sort(key=lambda x: x['priority'])
+    return rules
+
+def download_file(token, file_path):
+    """Download file from SharePoint using Graph API"""
+    site_info = get_site_info()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+
+    # Get site ID
+    site_url = f"https://graph.microsoft.com/v1.0/sites/{site_info['hostname']}:{site_info['site_path']}"
+    site_response = requests.get(site_url, headers=headers)
+    site_response.raise_for_status()
+    site_id = site_response.json()["id"]
+
+    # Download file
+    file_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{file_path}:/content"
+    file_response = requests.get(file_url, headers=headers)
+    file_response.raise_for_status()
+
+    return BytesIO(file_response.content)
+
+def upload_file(token, file_stream, target_path):
+    """Upload file to SharePoint using Graph API"""
+    site_info = get_site_info()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/octet-stream"
+    }
+
+    # Get site ID
+    site_url = f"https://graph.microsoft.com/v1.0/sites/{site_info['hostname']}:{site_info['site_path']}"
+    site_response = requests.get(site_url, headers=headers.copy())
+    site_response.raise_for_status()
+    site_id = site_response.json()["id"]
+
+    # Upload file
+    file_stream.seek(0)
+    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{target_path}:/content"
+    upload_response = requests.put(upload_url, headers=headers, data=file_stream.read())
+    upload_response.raise_for_status()
+
+    return upload_response.json().get("webUrl")
+
+def update_validation_status(token, item_id, status, report_url, list_name="Documents"):
+    """Update ValidationStatus column in document library using Graph API"""
+    site_info = get_site_info()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    # Get site ID
+    site_url = f"https://graph.microsoft.com/v1.0/sites/{site_info['hostname']}:{site_info['site_path']}"
+    site_response = requests.get(site_url, headers=headers)
+    site_response.raise_for_status()
+    site_id = site_response.json()["id"]
+
+    # Update list item
+    update_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{item_id}/fields"
+    update_data = {
+        "ValidationStatus": status,
+        "LastValidated": datetime.now(timezone.utc).isoformat()
+    }
+    if report_url:
+        update_data["ValidationReport"] = report_url
+
+    update_response = requests.patch(update_url, headers=headers, json=update_data)
+    update_response.raise_for_status()
+
+# ============================================
+# VALIDATION LOGIC - WORD
+# ============================================
+def validate_word_document(file_stream, rules):
+    """Validate Word document against rules"""
+    doc = Document(file_stream)
+    issues = []
+    fixes_applied = []
+    
+    # Filter rules for Word documents
+    word_rules = [r for r in rules if r['doc_type'] == 'Word']
+    
+    for rule in word_rules:
+        if rule['rule_type'] == 'Font':
+            result = check_word_fonts(doc, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+            
+        elif rule['rule_type'] == 'Color':
+            result = check_word_colors(doc, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+            
+        # Add more rule types as needed
+    
+    return {
+        'document': doc,
+        'issues': issues,
+        'fixes_applied': fixes_applied
+    }
+
+def check_word_fonts(doc, rule):
+    """Check and fix font issues in Word doc"""
+    issues = []
+    fixes = []
+    
+    # Example: Check Heading 1 font
+    if rule['check_value'] == 'Heading1Font':
+        expected_font = rule['expected_value']
+        
+        for paragraph in doc.paragraphs:
+            if paragraph.style.name == 'Heading 1':
+                current_font = paragraph.runs[0].font.name if paragraph.runs else None
+                
+                if current_font != expected_font:
+                    issues.append(f"Heading 1 has incorrect font: {current_font}")
+                    
+                    if rule['auto_fix']:
+                        for run in paragraph.runs:
+                            run.font.name = expected_font
+                        fixes.append(f"Fixed Heading 1 font to {expected_font}")
+    
+    return {'issues': issues, 'fixes': fixes}
+
+def check_word_colors(doc, rule):
+    """Check and fix color issues in Word doc"""
+    issues = []
+    fixes = []
+    
+    # Example: Check heading color
+    if rule['check_value'] == 'Heading1Color':
+        # Parse expected RGB from rule (e.g., "0,51,153")
+        expected_rgb = tuple(map(int, rule['expected_value'].split(',')))
+        
+        for paragraph in doc.paragraphs:
+            if paragraph.style.name == 'Heading 1':
+                for run in paragraph.runs:
+                    if run.font.color.rgb:
+                        current_rgb = run.font.color.rgb
+                        
+                        if current_rgb != expected_rgb:
+                            issues.append(f"Heading 1 color incorrect: {current_rgb}")
+                            
+                            if rule['auto_fix']:
+                                run.font.color.rgb = RGBColor(*expected_rgb)
+                                fixes.append(f"Fixed Heading 1 color to {expected_rgb}")
+    
+    return {'issues': issues, 'fixes': fixes}
+
+# ============================================
+# VALIDATION LOGIC - VISIO
+# ============================================
+def validate_visio_document(file_stream, rules):
+    """Validate Visio document against rules"""
+    visio = VisioFile(file_stream)
+    issues = []
+    fixes_applied = []
+    
+    # Filter rules for Visio documents
+    visio_rules = [r for r in rules if r['doc_type'] == 'Visio']
+    
+    for rule in visio_rules:
+        if rule['rule_type'] == 'Color':
+            result = check_visio_colors(visio, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+            
+        elif rule['rule_type'] == 'Font':
+            result = check_visio_fonts(visio, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+    
+    return {
+        'document': visio,
+        'issues': issues,
+        'fixes_applied': fixes_applied
+    }
+
+def check_visio_colors(visio, rule):
+    """Check and fix colors in Visio diagrams"""
+    issues = []
+    fixes = []
+    
+    # Example: Check shape fill colors
+    if rule['check_value'] == 'ShapeFillColor':
+        expected_color = rule['expected_value']  # e.g., "#003399"
+        
+        for page in visio.pages:
+            for shape in page.shapes:
+                # TODO: Implement color checking logic
+                # vsdx library shape color extraction
+                pass
+    
+    return {'issues': issues, 'fixes': fixes}
+
+def check_visio_fonts(visio, rule):
+    """Check and fix fonts in Visio diagrams"""
+    issues = []
+    fixes = []
+    
+    # TODO: Implement Visio font checking
+    # Note: vsdx library has limited font manipulation capabilities
+    
+    return {'issues': issues, 'fixes': fixes}
+
+# ============================================
+# REPORT GENERATION
+# ============================================
+def generate_report(file_name, issues, fixes_applied):
+    """Generate validation report as HTML"""
+    report_html = f"""
+    <html>
+    <head><title>Validation Report - {file_name}</title></head>
+    <body>
+        <h1>Style Validation Report</h1>
+        <p><strong>File:</strong> {file_name}</p>
+        <p><strong>Date:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
+        
+        <h2>Summary</h2>
+        <p>Issues Found: {len(issues)}</p>
+        <p>Issues Fixed: {len(fixes_applied)}</p>
+        
+        <h2>Issues Detected</h2>
+        <ul>
+            {''.join(f'<li>{issue}</li>' for issue in issues)}
+        </ul>
+        
+        <h2>Fixes Applied</h2>
+        <ul>
+            {''.join(f'<li>{fix}</li>' for fix in fixes_applied)}
+        </ul>
+    </body>
+    </html>
+    """
+    return report_html
+
+# ============================================
+# MAIN FUNCTION
+# ============================================
+def main(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info('Style validation function triggered')
+    
+    try:
+        # 1. Parse request
+        req_body = req.get_json()
+        item_id = req_body.get('itemId')
+        file_url = req_body.get('fileUrl')  # Server-relative URL
+        file_name = req_body.get('fileName')
+        file_extension = os.path.splitext(file_name)[1].lower()
+        
+        logging.info(f"Validating file: {file_name} (ID: {item_id})")
+
+        # 2. Get Microsoft Graph API token
+        token = get_graph_token()
+
+        # 3. Update status to "Validating..."
+        update_validation_status(token, item_id, "Validating...", None)
+
+        # 4. Fetch validation rules
+        rules = fetch_validation_rules(token)
+        logging.info(f"Loaded {len(rules)} validation rules")
+
+        # 5. Download file
+        file_stream = download_file(token, file_url)
+        
+        # 6. Validate based on file type
+        if file_extension in ['.docx', '.doc']:
+            result = validate_word_document(file_stream, rules)
+            
+            # Save fixed document
+            fixed_stream = BytesIO()
+            result['document'].save(fixed_stream)
+            fixed_stream.seek(0)
+            
+        elif file_extension in ['.vsdx', '.vsd']:
+            result = validate_visio_document(file_stream, rules)
+            
+            # Save fixed document
+            fixed_stream = BytesIO()
+            result['document'].save_vsdx(fixed_stream)
+            fixed_stream.seek(0)
+            
+        else:
+            return func.HttpResponse(
+                json.dumps({"error": f"Unsupported file type: {file_extension}"}),
+                status_code=400
+            )
+        
+        # 7. Upload fixed file (overwrite original)
+        if result['fixes_applied']:
+            upload_file(token, fixed_stream, file_url)
+            logging.info(f"Applied {len(result['fixes_applied'])} fixes")
+
+        # 8. Generate and upload report
+        report_html = generate_report(file_name, result['issues'], result['fixes_applied'])
+        report_stream = BytesIO(report_html.encode('utf-8'))
+        report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.html"
+        report_folder = os.path.dirname(file_url)
+        report_url = upload_file(token, report_stream, f"{report_folder}/{report_filename}")
+
+        # 9. Update validation status
+        final_status = "Passed" if len(result['issues']) == 0 else "Failed"
+        update_validation_status(token, item_id, final_status, report_url)
+        
+        # 10. Return response
+        return func.HttpResponse(
+            json.dumps({
+                "status": final_status,
+                "issuesFound": len(result['issues']),
+                "issuesFixed": len(result['fixes_applied']),
+                "reportUrl": report_url
+            }),
+            mimetype="application/json",
+            status_code=200
+        )
+
+    except Exception as e:
+        logging.error(f"Validation failed: {str(e)}")
+        return func.HttpResponse(
+            json.dumps({"error": str(e)}),
+            mimetype="application/json",
+            status_code=500
+        )
