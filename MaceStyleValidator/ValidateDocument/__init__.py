@@ -729,7 +729,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 issues_count=len(result['issues']),
                 fixes_count=len(result['fixes_applied']),
                 status=result_status,
-                html_report=report_html
+                html_report=report_html,
+                report_url=report_url
             )
             logging.info(f"✓ Validation result saved: {validation_result_info['list_item_url']}")
 
