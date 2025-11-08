@@ -9,8 +9,10 @@ from docx.shared import Pt, RGBColor
 from vsdx import VisioFile
 import msal
 import requests
+from anthropic import Anthropic
 from .enhanced_validators import validate_language_rules, validate_punctuation_rules, validate_grammar_rules
 from .claude_validator import validate_with_claude
+from .sharepoint_results import save_validation_result, update_document_metadata
 
 # ============================================
 # CONFIGURATION
@@ -53,6 +55,19 @@ def get_site_info():
         "full_url": site_url
     }
 
+def get_site_id(token):
+    """Get SharePoint site ID using Graph API"""
+    site_info = get_site_info()
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json"
+    }
+
+    site_url = f"https://graph.microsoft.com/v1.0/sites/{site_info['hostname']}:{site_info['site_path']}"
+    site_response = requests.get(site_url, headers=headers)
+    site_response.raise_for_status()
+    return site_response.json()["id"]
+
 # ============================================
 # SHAREPOINT OPERATIONS
 # ============================================
@@ -91,6 +106,43 @@ def fetch_validation_rules(token):
 
     rules.sort(key=lambda x: x['priority'])
     return rules
+
+def build_dynamic_claude_prompt(ai_rules, document_text):
+    """Build Claude prompt dynamically from SharePoint rules where UseAI=True"""
+
+    # Group rules by type for better organization
+    rules_by_type = {}
+    for rule in ai_rules:
+        rule_type = rule.get('rule_type', 'Other')
+        if rule_type not in rules_by_type:
+            rules_by_type[rule_type] = []
+        rules_by_type[rule_type].append(rule)
+
+    # Build rules description
+    rules_description = []
+    for rule_type, rules in sorted(rules_by_type.items()):
+        rules_description.append(f"\n**{rule_type} Rules:**")
+        for rule in rules:
+            title = rule.get('title', 'Unknown rule')
+            expected = rule.get('expected_value', '')
+            if expected:
+                rules_description.append(f"- {title} (use: {expected})")
+            else:
+                rules_description.append(f"- {title}")
+
+    prompt = f"""You are a professional document editor applying the Mace Control Centre Writing Style Guide.
+
+Apply ALL of the following corrections to the text:
+{''.join(rules_description)}
+
+Return a JSON object with two fields:
+1. "corrected_text": the full corrected text (preserve paragraph breaks as \\n\\n)
+2. "changes_made": total count of ALL changes made
+
+Text to correct:
+{document_text}"""
+
+    return prompt
 
 def download_file(token, file_path):
     """Download file from SharePoint using Graph API"""
@@ -511,9 +563,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # 6. Validate based on file type
         logging.info(f'Step 6: Validating document type {file_extension}...')
         if file_extension in ['.docx', '.doc']:
-            # SIMPLE TEST v3.0 - Just change "finalized" to "finalised"
             logging.info("=" * 60)
-            logging.info("SIMPLE TEST v3.0: finalized -> finalised")
+            logging.info("v4.2: Dynamic Rules + Validation Results + Document Library Linkback")
             logging.info("=" * 60)
 
             from docx import Document
@@ -521,22 +572,87 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
             issues = []
             fixes_applied = []
-            changes_made = 0
 
-            # Search all paragraphs for "finalized" and replace with "finalised"
-            for para in doc.paragraphs:
-                for run in para.runs:
-                    if 'finalized' in run.text.lower():
-                        original_text = run.text
-                        run.text = run.text.replace('finalized', 'finalised')
-                        run.text = run.text.replace('Finalized', 'Finalised')
-                        changes_made += 1
-                        logging.info(f"Changed: '{original_text}' -> '{run.text}'")
-                        issues.append(f"Found 'finalized' in text")
-                        fixes_applied.append(f"Changed 'finalized' to 'finalised'")
+            # 1. Use Claude for comprehensive style corrections
+            api_key = os.environ.get("ANTHROPIC_API_KEY")
+            if api_key:
+                logging.info("Calling Claude for style corrections...")
 
-            logging.info(f"SIMPLE TEST: Made {changes_made} changes")
-            logging.info(f"SIMPLE TEST: issues={len(issues)}, fixes_applied={len(fixes_applied)}")
+                # Extract all text from document
+                full_text = "\n\n".join([p.text for p in doc.paragraphs if p.text.strip()])
+
+                if full_text.strip():
+                    try:
+                        # Fetch rules from SharePoint and filter for AI-enabled rules
+                        logging.info("Fetching validation rules from SharePoint...")
+                        all_rules = fetch_validation_rules(token)
+                        ai_rules = [r for r in all_rules if r.get('use_ai', False)]
+                        logging.info(f"Found {len(ai_rules)} AI-enabled rules from SharePoint")
+
+                        client = Anthropic(api_key=api_key)
+
+                        # Build dynamic prompt from SharePoint rules
+                        prompt = build_dynamic_claude_prompt(ai_rules, full_text)
+
+                        response = client.messages.create(
+                            model="claude-3-haiku-20240307",
+                            max_tokens=4096,
+                            temperature=0.3,
+                            messages=[{"role": "user", "content": prompt}]
+                        )
+
+                        response_text = response.content[0].text
+                        json_start = response_text.find('{')
+                        json_end = response_text.rfind('}') + 1
+
+                        if json_start >= 0 and json_end > json_start:
+                            result_json = json.loads(response_text[json_start:json_end])
+                            corrected_text = result_json.get('corrected_text', '')
+                            changes_count = result_json.get('changes_made', 0)
+
+                            if changes_count > 0 and corrected_text:
+                                # Apply corrections paragraph by paragraph
+                                corrected_paras = corrected_text.split('\n\n')
+                                para_index = 0
+
+                                for para in doc.paragraphs:
+                                    if para.text.strip() and para_index < len(corrected_paras):
+                                        if len(para.runs) > 0:
+                                            # Update first run, clear others
+                                            para.runs[0].text = corrected_paras[para_index]
+                                            for run in para.runs[1:]:
+                                                run.text = ""
+                                        para_index += 1
+
+                                issues.append(f"Found {changes_count} style violations")
+                                fixes_applied.append(f"Applied {changes_count} style corrections (British English, contractions, symbols, etc.)")
+                                logging.info(f"Claude style corrections: {changes_count}")
+                            else:
+                                logging.info("No spelling changes needed")
+
+                    except Exception as e:
+                        logging.error(f"Claude API error: {str(e)}")
+                        issues.append(f"AI style validation failed: {str(e)}")
+            else:
+                logging.warning("ANTHROPIC_API_KEY not set - skipping AI style validation")
+
+            # 2. Font checking (proven to work)
+            font_changes = 0
+            expected_font = "Arial"
+            for paragraph in doc.paragraphs:
+                for run in paragraph.runs:
+                    if run.text.strip():
+                        current_font = run.font.name
+                        if current_font is None or current_font != expected_font:
+                            run.font.name = expected_font
+                            font_changes += 1
+
+            if font_changes > 0:
+                issues.append(f"Found {font_changes} text runs with incorrect font")
+                fixes_applied.append(f"Fixed {font_changes} text runs to {expected_font}")
+                logging.info(f"Font changes: {font_changes}")
+
+            logging.info(f"v3.3 TOTAL: {len(issues)} issues, {len(fixes_applied)} fixes")
 
             result = {
                 'document': doc,
@@ -599,6 +715,46 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         else:
             logging.info('Skipping report upload (no file URL provided)')
 
+        # 8.5. Save validation result to Validation Results list
+        logging.info('Step 8.5: Saving validation result to Validation Results list...')
+        validation_result_info = None
+        try:
+            site_id = get_site_id(token)
+            unfixed_issues = len(result['issues']) - len(result['fixes_applied'])
+            result_status = "Passed" if unfixed_issues == 0 else "Failed"
+
+            validation_result_info = save_validation_result(
+                token=token,
+                site_id=site_id,
+                filename=file_name,
+                issues_count=len(result['issues']),
+                fixes_count=len(result['fixes_applied']),
+                status=result_status,
+                html_report=report_html
+            )
+            logging.info(f"✓ Validation result saved: {validation_result_info['list_item_url']}")
+
+            # 8.6. Update document metadata with link to validation result
+            if file_url and validation_result_info:
+                logging.info('Step 8.6: Updating document with validation result link...')
+                try:
+                    update_success = update_document_metadata(
+                        token=token,
+                        site_id=site_id,
+                        file_url=file_url,
+                        validation_result_url=validation_result_info['list_item_url']
+                    )
+                    if update_success:
+                        logging.info("✓ Document metadata updated with validation result link")
+                    else:
+                        logging.warning("Document metadata update returned False")
+                except Exception as update_error:
+                    logging.error(f"Failed to update document metadata: {str(update_error)}")
+                    logging.error(f"Continuing with validation process...")
+        except Exception as e:
+            logging.error(f"Failed to save validation result: {str(e)}")
+            logging.error(f"Continuing with validation process...")
+
         # 9. Update validation status
         logging.info('Step 9: Updating final validation status...')
         # Pass if no issues, or if all issues were auto-fixed
@@ -614,7 +770,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "status": final_status,
             "issuesFound": len(result['issues']),
             "issuesFixed": len(result['fixes_applied']),
-            "reportUrl": report_url
+            "reportUrl": report_url,
+            "validationResultUrl": validation_result_info['list_item_url'] if validation_result_info else None,
+            # Hyperlink objects for Power Automate (SharePoint format)
+            "reportLink": {
+                "Description": "View HTML Report",
+                "Url": report_url
+            } if report_url else None,
+            "validationResultLink": {
+                "Description": "View Validation Result",
+                "Url": validation_result_info['list_item_url']
+            } if validation_result_info else None
         }
 
         # Include fixed file content if fixes were applied
