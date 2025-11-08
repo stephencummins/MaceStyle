@@ -516,15 +516,26 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         logging.info(f"Issues: {len(result['issues'])}, Fixes: {len(result['fixes_applied'])}, Unfixed: {unfixed_issues}")
         update_validation_status(token, item_id, final_status, report_url)
 
-        # 10. Return response
+        # 10. Return response with fixed file content
         logging.info(f'=== VALIDATION COMPLETE: {final_status} ===')
+
+        response_data = {
+            "status": final_status,
+            "issuesFound": len(result['issues']),
+            "issuesFixed": len(result['fixes_applied']),
+            "reportUrl": report_url
+        }
+
+        # Include fixed file content if fixes were applied
+        if result['fixes_applied']:
+            import base64
+            fixed_stream.seek(0)
+            fixed_content_base64 = base64.b64encode(fixed_stream.read()).decode('utf-8')
+            response_data["fixedFileContent"] = fixed_content_base64
+            logging.info(f"Returning fixed file content ({len(fixed_content_base64)} chars)")
+
         return func.HttpResponse(
-            json.dumps({
-                "status": final_status,
-                "issuesFound": len(result['issues']),
-                "issuesFixed": len(result['fixes_applied']),
-                "reportUrl": report_url
-            }),
+            json.dumps(response_data),
             mimetype="application/json",
             status_code=200
         )
