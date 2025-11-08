@@ -9,6 +9,7 @@ from docx.shared import Pt, RGBColor
 from vsdx import VisioFile
 import msal
 import requests
+from .enhanced_validators import validate_language_rules, validate_punctuation_rules, validate_grammar_rules
 
 # ============================================
 # CONFIGURATION
@@ -224,7 +225,23 @@ def validate_word_document(file_stream, rules):
             issues.extend(result['issues'])
             fixes_applied.extend(result['fixes'])
 
-        # Add more rule types as needed
+        elif rule['rule_type'] == 'Language':
+            result = validate_language_rules(doc, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+
+        elif rule['rule_type'] == 'Grammar':
+            result = validate_grammar_rules(doc, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+
+        elif rule['rule_type'] == 'Punctuation':
+            result = validate_punctuation_rules(doc, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+
+        else:
+            logging.info(f"Rule type '{rule['rule_type']}' not yet implemented")
 
     logging.info(f"Validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
 
