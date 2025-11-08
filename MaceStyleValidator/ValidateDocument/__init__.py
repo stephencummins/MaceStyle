@@ -10,6 +10,7 @@ from vsdx import VisioFile
 import msal
 import requests
 from .enhanced_validators import validate_language_rules, validate_punctuation_rules, validate_grammar_rules
+from .claude_validator import validate_with_claude
 
 # ============================================
 # CONFIGURATION
@@ -84,6 +85,7 @@ def fetch_validation_rules(token):
             'check_value': fields.get('CheckValue'),
             'expected_value': fields.get('ExpectedValue'),
             'auto_fix': fields.get('AutoFix'),
+            'use_ai': fields.get('UseAI', False),  # Add UseAI field
             'priority': fields.get('Priority', 999)
         })
 
@@ -212,8 +214,30 @@ def validate_word_document(file_stream, rules):
     word_rules = [r for r in rules if r['doc_type'] == 'Word']
     logging.info(f"Applying {len(word_rules)} Word validation rules")
 
-    for idx, rule in enumerate(word_rules):
-        logging.info(f"Processing rule {idx+1}/{len(word_rules)}: {rule.get('title', 'Unknown')}")
+    # Split rules into AI-enabled and hard-coded
+    ai_rules = [r for r in word_rules if r.get('use_ai', False)]
+    hard_coded_rules = [r for r in word_rules if not r.get('use_ai', False)]
+
+    logging.info(f"AI-enabled rules: {len(ai_rules)}, Hard-coded rules: {len(hard_coded_rules)}")
+    logging.info(f"AI rule titles: {[r.get('title', 'Unknown') for r in ai_rules]}")
+    logging.info(f"Hard-coded rule titles: {[r.get('title', 'Unknown') for r in hard_coded_rules]}")
+
+    # Process AI-enabled rules first (single Claude API call for all)
+    # TEMPORARILY DISABLED FOR TESTING
+    if False and ai_rules:
+        logging.info(f"Calling Claude AI for {len(ai_rules)} rules...")
+        try:
+            ai_result = validate_with_claude(doc, ai_rules)
+            issues.extend(ai_result.get('issues', []))
+            fixes_applied.extend(ai_result.get('fixes_applied', []))
+            logging.info(f"Claude validation complete: {len(ai_result.get('issues', []))} issues, {len(ai_result.get('fixes_applied', []))} fixes")
+        except Exception as e:
+            logging.error(f"Claude validation failed: {str(e)}")
+            issues.append(f"AI validation failed: {str(e)}")
+
+    # Process hard-coded rules
+    for idx, rule in enumerate(hard_coded_rules):
+        logging.info(f"Processing rule {idx+1}/{len(hard_coded_rules)}: {rule.get('title', 'Unknown')}")
 
         if rule['rule_type'] == 'Font':
             result = check_word_fonts(doc, rule)
@@ -244,6 +268,17 @@ def validate_word_document(file_stream, rules):
             logging.info(f"Rule type '{rule['rule_type']}' not yet implemented")
 
     logging.info(f"Validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
+
+    # DIAGNOSTIC LOGGING v2.3
+    logging.info("=" * 60)
+    logging.info("DIAGNOSTIC v2.3: validate_word_document returning")
+    logging.info(f"DIAGNOSTIC: issues count = {len(issues)}")
+    logging.info(f"DIAGNOSTIC: fixes_applied count = {len(fixes_applied)}")
+    if issues:
+        logging.info(f"DIAGNOSTIC: issues[0] = {issues[0]}")
+    if fixes_applied:
+        logging.info(f"DIAGNOSTIC: fixes_applied[0] = {fixes_applied[0]}")
+    logging.info("=" * 60)
 
     return {
         'document': doc,
@@ -476,7 +511,38 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # 6. Validate based on file type
         logging.info(f'Step 6: Validating document type {file_extension}...')
         if file_extension in ['.docx', '.doc']:
-            result = validate_word_document(file_stream, rules)
+            # SIMPLE TEST v3.0 - Just change "finalized" to "finalised"
+            logging.info("=" * 60)
+            logging.info("SIMPLE TEST v3.0: finalized -> finalised")
+            logging.info("=" * 60)
+
+            from docx import Document
+            doc = Document(file_stream)
+
+            issues = []
+            fixes_applied = []
+            changes_made = 0
+
+            # Search all paragraphs for "finalized" and replace with "finalised"
+            for para in doc.paragraphs:
+                for run in para.runs:
+                    if 'finalized' in run.text.lower():
+                        original_text = run.text
+                        run.text = run.text.replace('finalized', 'finalised')
+                        run.text = run.text.replace('Finalized', 'Finalised')
+                        changes_made += 1
+                        logging.info(f"Changed: '{original_text}' -> '{run.text}'")
+                        issues.append(f"Found 'finalized' in text")
+                        fixes_applied.append(f"Changed 'finalized' to 'finalised'")
+
+            logging.info(f"SIMPLE TEST: Made {changes_made} changes")
+            logging.info(f"SIMPLE TEST: issues={len(issues)}, fixes_applied={len(fixes_applied)}")
+
+            result = {
+                'document': doc,
+                'issues': issues,
+                'fixes_applied': fixes_applied
+            }
 
             # Save fixed document
             logging.info('Saving fixed document to stream...')
@@ -500,13 +566,21 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             )
 
         # 7. Upload fixed file (overwrite original) - only if file_url is provided
+        logging.info("=" * 60)
+        logging.info(f"UPLOAD CHECK v3.0:")
+        logging.info(f"  file_url present: {file_url is not None}")
+        logging.info(f"  fixes_applied count: {len(result.get('fixes_applied', []))}")
+        logging.info(f"  Will upload: {file_url and result['fixes_applied']}")
+        logging.info("=" * 60)
+
         if file_url and result['fixes_applied']:
-            logging.info(f'Step 7: Uploading fixed document ({len(result["fixes_applied"])} fixes)...')
+            logging.info(f'Step 7: UPLOADING fixed document ({len(result["fixes_applied"])} fixes)...')
             upload_file(token, fixed_stream, file_url)
+            logging.info('Step 7: Upload complete!')
         elif not file_url:
-            logging.info('Step 7: Skipping upload (no file URL provided, file content was sent directly)')
+            logging.info('Step 7: Skipping upload (no file URL provided)')
         else:
-            logging.info('Step 7: No fixes to upload')
+            logging.info('Step 7: NO FIXES TO UPLOAD (fixes_applied is empty)')
 
         # 8. Generate report
         logging.info('Step 8: Generating report...')

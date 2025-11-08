@@ -73,6 +73,7 @@ def create_style_rules():
     - CheckValue: What to check (e.g., 'AllTextFont', 'Contractions', etc.)
     - ExpectedValue: The expected/correct value
     - AutoFix: True/False - whether this can be auto-fixed
+    - UseAI: True/False - whether to use AI (Claude) for this rule
     - Priority: Numeric priority (lower = higher priority)
     """
 
@@ -87,6 +88,7 @@ def create_style_rules():
             "CheckValue": "AllTextFont",
             "ExpectedValue": "Arial",
             "AutoFix": True,
+            "UseAI": False,  # Use hard-coded validation for fonts
             "Priority": 1
         },
 
@@ -100,6 +102,7 @@ def create_style_rules():
             "CheckValue": "BritishSpelling_colour",
             "ExpectedValue": "colour",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude for comprehensive British spelling
             "Priority": 10
         },
         {
@@ -109,6 +112,7 @@ def create_style_rules():
             "CheckValue": "BritishSpelling_aluminium",
             "ExpectedValue": "aluminium",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude for comprehensive British spelling
             "Priority": 10
         },
         {
@@ -118,6 +122,7 @@ def create_style_rules():
             "CheckValue": "BritishSpelling_analyse",
             "ExpectedValue": "analyse",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude for comprehensive British spelling
             "Priority": 10
         },
         {
@@ -127,6 +132,7 @@ def create_style_rules():
             "CheckValue": "BritishSpelling_centre",
             "ExpectedValue": "centre",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude for comprehensive British spelling
             "Priority": 10
         },
         {
@@ -136,6 +142,7 @@ def create_style_rules():
             "CheckValue": "BritishSpelling_licence",
             "ExpectedValue": "licence",
             "AutoFix": False,  # Context dependent (noun vs verb)
+            "UseAI": True,  # Use Claude for comprehensive British spelling
             "Priority": 10
         },
         {
@@ -145,6 +152,7 @@ def create_style_rules():
             "CheckValue": "BritishSpelling_organise",
             "ExpectedValue": "organise",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude for comprehensive British spelling
             "Priority": 10
         },
 
@@ -158,6 +166,7 @@ def create_style_rules():
             "CheckValue": "NoContraction_cant",
             "ExpectedValue": "cannot",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude to catch all contractions
             "Priority": 15
         },
         {
@@ -167,6 +176,7 @@ def create_style_rules():
             "CheckValue": "NoContraction_dont",
             "ExpectedValue": "do not",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude to catch all contractions
             "Priority": 15
         },
         {
@@ -176,6 +186,7 @@ def create_style_rules():
             "CheckValue": "NoContraction_isnt",
             "ExpectedValue": "is not",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude to catch all contractions
             "Priority": 15
         },
         {
@@ -185,6 +196,7 @@ def create_style_rules():
             "CheckValue": "NoContraction_wont",
             "ExpectedValue": "will not",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude to catch all contractions
             "Priority": 15
         },
 
@@ -198,6 +210,7 @@ def create_style_rules():
             "CheckValue": "DateFormat_Text",
             "ExpectedValue": "DD MONTH YYYY",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 20
         },
         {
@@ -207,6 +220,7 @@ def create_style_rules():
             "CheckValue": "TimeFormat",
             "ExpectedValue": "HH:MM",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 20
         },
 
@@ -220,6 +234,7 @@ def create_style_rules():
             "CheckValue": "NumbersBelowTen",
             "ExpectedValue": "Spelled",
             "AutoFix": False,  # Context dependent
+            "UseAI": False,  # Not implemented yet
             "Priority": 25
         },
         {
@@ -229,6 +244,7 @@ def create_style_rules():
             "CheckValue": "NumberCommas",
             "ExpectedValue": "WithCommas",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude to catch all number formatting
             "Priority": 25
         },
 
@@ -242,6 +258,7 @@ def create_style_rules():
             "CheckValue": "SectionTitles",
             "ExpectedValue": "Capitalised",
             "AutoFix": True,
+            "UseAI": False,  # Not implemented yet
             "Priority": 30
         },
         {
@@ -251,6 +268,7 @@ def create_style_rules():
             "CheckValue": "SubsidiaryHeadings",
             "ExpectedValue": "SentenceCase",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 30
         },
         {
@@ -260,6 +278,7 @@ def create_style_rules():
             "CheckValue": "JobTitles",
             "ExpectedValue": "ContextDependent",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 30
         },
         {
@@ -269,6 +288,7 @@ def create_style_rules():
             "CheckValue": "NoEmphasisCaps",
             "ExpectedValue": "NoCapsForEmphasis",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 30
         },
 
@@ -282,6 +302,7 @@ def create_style_rules():
             "CheckValue": "Word_toward",
             "ExpectedValue": "toward",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude for word choice
             "Priority": 35
         },
         {
@@ -291,6 +312,7 @@ def create_style_rules():
             "CheckValue": "AvoidEtc",
             "ExpectedValue": "NoEtc",
             "AutoFix": False,
+            "UseAI": True,  # Use Claude for word choice
             "Priority": 35
         },
         {
@@ -300,6 +322,7 @@ def create_style_rules():
             "CheckValue": "AvoidShould",
             "ExpectedValue": "will/must/shall",
             "AutoFix": False,
+            "UseAI": False,  # Too context dependent, not implemented
             "Priority": 35
         },
         {
@@ -309,6 +332,7 @@ def create_style_rules():
             "CheckValue": "PreferMetric",
             "ExpectedValue": "Metric",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 40
         },
 
@@ -322,6 +346,7 @@ def create_style_rules():
             "CheckValue": "Hyphen_wide",
             "ExpectedValue": "Hyphenated",
             "AutoFix": True,
+            "UseAI": False,  # Not implemented yet
             "Priority": 45
         },
         {
@@ -331,6 +356,7 @@ def create_style_rules():
             "CheckValue": "CompoundModifiers",
             "ExpectedValue": "Hyphenated",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 45
         },
 
@@ -344,6 +370,7 @@ def create_style_rules():
             "CheckValue": "SpecialTerms",
             "ExpectedValue": "SingleQuotes",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 50
         },
         {
@@ -353,6 +380,7 @@ def create_style_rules():
             "CheckValue": "DirectSpeech",
             "ExpectedValue": "DoubleQuotes",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 50
         },
 
@@ -366,6 +394,7 @@ def create_style_rules():
             "CheckValue": "NoApostrophePlurals",
             "ExpectedValue": "NoApostrophe",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude to catch apostrophe errors
             "Priority": 55
         },
 
@@ -379,6 +408,7 @@ def create_style_rules():
             "CheckValue": "NoAmpersand",
             "ExpectedValue": "and",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude to replace ampersands
             "Priority": 60
         },
         {
@@ -388,6 +418,7 @@ def create_style_rules():
             "CheckValue": "PercentSymbol",
             "ExpectedValue": "percent",
             "AutoFix": True,
+            "UseAI": True,  # Use Claude to replace percent symbols
             "Priority": 60
         },
 
@@ -401,6 +432,7 @@ def create_style_rules():
             "CheckValue": "FigureTableCaptions",
             "ExpectedValue": "Required",
             "AutoFix": False,
+            "UseAI": False,  # Not implemented yet
             "Priority": 70
         },
     ]
