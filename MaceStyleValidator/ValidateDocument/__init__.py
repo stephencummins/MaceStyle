@@ -510,7 +510,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         # 9. Update validation status
         logging.info('Step 9: Updating final validation status...')
-        final_status = "Passed" if len(result['issues']) == 0 else "Failed"
+        # Pass if no issues, or if all issues were auto-fixed
+        unfixed_issues = len(result['issues']) - len(result['fixes_applied'])
+        final_status = "Passed" if unfixed_issues == 0 else "Failed"
+        logging.info(f"Issues: {len(result['issues'])}, Fixes: {len(result['fixes_applied'])}, Unfixed: {unfixed_issues}")
         update_validation_status(token, item_id, final_status, report_url)
 
         # 10. Return response
