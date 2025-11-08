@@ -155,6 +155,317 @@ def create_style_rules():
             "UseAI": True,  # Use Claude for comprehensive British spelling
             "Priority": 10
         },
+        # Additional British English spellings from PDF page 21
+        {
+            "Title": "Use British English spelling - 'analogue' not 'analog'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_analogue",
+            "ExpectedValue": "analogue",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'authorise' not 'authorize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_authorise",
+            "ExpectedValue": "authorise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'calibre' not 'caliber'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_calibre",
+            "ExpectedValue": "calibre",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'catalogue' not 'catalog'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_catalogue",
+            "ExpectedValue": "catalogue",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'characterise' not 'characterize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_characterise",
+            "ExpectedValue": "characterise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'defence' not 'defense'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_defence",
+            "ExpectedValue": "defence",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'finalised' not 'finalized'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_finalised",
+            "ExpectedValue": "finalised",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'dialogue' not 'dialog'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_dialogue",
+            "ExpectedValue": "dialogue",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'fibre' not 'fiber'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_fibre",
+            "ExpectedValue": "fibre",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'grey' not 'gray'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_grey",
+            "ExpectedValue": "grey",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'harbour' not 'harbor'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_harbour",
+            "ExpectedValue": "harbour",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'labour' not 'labor'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_labour",
+            "ExpectedValue": "labour",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'learnt' not 'learned' (past tense)",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_learnt",
+            "ExpectedValue": "learnt",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'litre' not 'liter'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_litre",
+            "ExpectedValue": "litre",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'manoeuvre' not 'maneuver'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_manoeuvre",
+            "ExpectedValue": "manoeuvre",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'maximise' not 'maximize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_maximise",
+            "ExpectedValue": "maximise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'metre' not 'meter'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_metre",
+            "ExpectedValue": "metre",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'minimise' not 'minimize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_minimise",
+            "ExpectedValue": "minimise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'mobilise' not 'mobilize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_mobilise",
+            "ExpectedValue": "mobilise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'modelling' not 'modeling'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_modelling",
+            "ExpectedValue": "modelling",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'neighbour' not 'neighbor'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_neighbour",
+            "ExpectedValue": "neighbour",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'neutralise' not 'neutralize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_neutralise",
+            "ExpectedValue": "neutralise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'normalise' not 'normalize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_normalise",
+            "ExpectedValue": "normalise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'optimise' not 'optimize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_optimise",
+            "ExpectedValue": "optimise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'programme' not 'program'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_programme",
+            "ExpectedValue": "programme",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'realise' not 'realize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_realise",
+            "ExpectedValue": "realise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'skilful' not 'skillful'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_skilful",
+            "ExpectedValue": "skilful",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'spelt' not 'spelled' (past tense)",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_spelt",
+            "ExpectedValue": "spelt",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'stabilise' not 'stabilize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_stabilise",
+            "ExpectedValue": "stabilise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'summarise' not 'summarize'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_summarise",
+            "ExpectedValue": "summarise",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
+        {
+            "Title": "Use British English spelling - 'tunnelling' not 'tunneling'",
+            "RuleType": "Language",
+            "DocumentType": "Word",
+            "CheckValue": "BritishSpelling_tunnelling",
+            "ExpectedValue": "tunnelling",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 10
+        },
 
         # ============================================
         # GRAMMAR RULES - Contractions
@@ -197,6 +508,76 @@ def create_style_rules():
             "ExpectedValue": "will not",
             "AutoFix": True,
             "UseAI": True,  # Use Claude to catch all contractions
+            "Priority": 15
+        },
+        {
+            "Title": "No contractions in formal text - use 'could not' not 'couldn't'",
+            "RuleType": "Grammar",
+            "DocumentType": "Word",
+            "CheckValue": "NoContraction_couldnt",
+            "ExpectedValue": "could not",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 15
+        },
+        {
+            "Title": "No contractions in formal text - use 'did not' not 'didn't'",
+            "RuleType": "Grammar",
+            "DocumentType": "Word",
+            "CheckValue": "NoContraction_didnt",
+            "ExpectedValue": "did not",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 15
+        },
+        {
+            "Title": "No contractions in formal text - use 'does not' not 'doesn't'",
+            "RuleType": "Grammar",
+            "DocumentType": "Word",
+            "CheckValue": "NoContraction_doesnt",
+            "ExpectedValue": "does not",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 15
+        },
+        {
+            "Title": "No contractions in formal text - use 'has not' not 'hasn't'",
+            "RuleType": "Grammar",
+            "DocumentType": "Word",
+            "CheckValue": "NoContraction_hasnt",
+            "ExpectedValue": "has not",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 15
+        },
+        {
+            "Title": "No contractions in formal text - use 'have not' not 'haven't'",
+            "RuleType": "Grammar",
+            "DocumentType": "Word",
+            "CheckValue": "NoContraction_havent",
+            "ExpectedValue": "have not",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 15
+        },
+        {
+            "Title": "No contractions in formal text - use 'should not' not 'shouldn't'",
+            "RuleType": "Grammar",
+            "DocumentType": "Word",
+            "CheckValue": "NoContraction_shouldnt",
+            "ExpectedValue": "should not",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 15
+        },
+        {
+            "Title": "No contractions in formal text - use 'would not' not 'wouldn't'",
+            "RuleType": "Grammar",
+            "DocumentType": "Word",
+            "CheckValue": "NoContraction_wouldnt",
+            "ExpectedValue": "would not",
+            "AutoFix": True,
+            "UseAI": True,
             "Priority": 15
         },
 

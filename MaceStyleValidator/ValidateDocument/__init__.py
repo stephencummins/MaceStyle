@@ -275,8 +275,7 @@ def validate_word_document(file_stream, rules):
     logging.info(f"Hard-coded rule titles: {[r.get('title', 'Unknown') for r in hard_coded_rules]}")
 
     # Process AI-enabled rules first (single Claude API call for all)
-    # TEMPORARILY DISABLED FOR TESTING
-    if False and ai_rules:
+    if ai_rules:
         logging.info(f"Calling Claude AI for {len(ai_rules)} rules...")
         try:
             ai_result = validate_with_claude(doc, ai_rules)
