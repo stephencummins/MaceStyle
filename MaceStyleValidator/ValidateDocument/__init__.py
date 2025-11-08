@@ -405,9 +405,21 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # 1. Parse request
         logging.info('Step 1: Parsing request...')
         req_body = req.get_json()
-        item_id = req_body.get('itemId')
-        file_url = req_body.get('fileUrl')  # Server-relative URL
-        file_name = req_body.get('fileName')
+        logging.info(f"Full request body: {json.dumps(req_body)}")
+
+        item_id = req_body.get('itemId') or req_body.get('ID')
+
+        # Try multiple possible parameter names for file URL
+        file_url = (req_body.get('fileUrl') or
+                   req_body.get('FileRef') or
+                   req_body.get('ServerRelativeUrl') or
+                   req_body.get('fileRef'))
+
+        # Try multiple possible parameter names for file name
+        file_name = (req_body.get('fileName') or
+                    req_body.get('FileLeafRef') or
+                    req_body.get('Name'))
+
         file_extension = os.path.splitext(file_name)[1].lower() if file_name else ''
 
         logging.info(f"Request params - File: {file_name}, ID: {item_id}, URL: {file_url}")
