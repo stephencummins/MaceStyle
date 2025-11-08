@@ -472,27 +472,167 @@ def check_visio_fonts(visio, rule):
 # ============================================
 def generate_report(file_name, issues, fixes_applied):
     """Generate validation report as HTML"""
+    unfixed_issues = len(issues) - len(fixes_applied)
+    status = "PASSED" if unfixed_issues == 0 else "FAILED"
+    status_color = "#28a745" if unfixed_issues == 0 else "#dc3545"
+
     report_html = f"""
+    <!DOCTYPE html>
     <html>
-    <head><title>Validation Report - {file_name}</title></head>
+    <head>
+        <meta charset="UTF-8">
+        <title>Validation Report - {file_name}</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                max-width: 1200px;
+                margin: 20px auto;
+                padding: 20px;
+                background-color: #f5f5f5;
+            }}
+            .header {{
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                border-radius: 10px;
+                margin-bottom: 30px;
+            }}
+            .header h1 {{
+                margin: 0 0 10px 0;
+            }}
+            .status-badge {{
+                display: inline-block;
+                padding: 8px 20px;
+                background-color: {status_color};
+                color: white;
+                border-radius: 20px;
+                font-weight: bold;
+                font-size: 14px;
+            }}
+            .meta-info {{
+                margin-top: 15px;
+                font-size: 14px;
+                opacity: 0.9;
+            }}
+            .summary {{
+                background: white;
+                padding: 25px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }}
+            .summary-grid {{
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 20px;
+                margin-top: 20px;
+            }}
+            .summary-card {{
+                background: #f8f9fa;
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+                border-left: 4px solid #667eea;
+            }}
+            .summary-card .number {{
+                font-size: 36px;
+                font-weight: bold;
+                color: #667eea;
+                margin-bottom: 5px;
+            }}
+            .summary-card .label {{
+                font-size: 14px;
+                color: #6c757d;
+                text-transform: uppercase;
+            }}
+            .section {{
+                background: white;
+                padding: 25px;
+                border-radius: 10px;
+                margin-bottom: 20px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }}
+            .section h2 {{
+                color: #333;
+                margin-top: 0;
+                border-bottom: 2px solid #667eea;
+                padding-bottom: 10px;
+            }}
+            .issue-list, .fix-list {{
+                list-style: none;
+                padding: 0;
+            }}
+            .issue-list li, .fix-list li {{
+                padding: 12px 15px;
+                margin: 8px 0;
+                border-radius: 5px;
+                border-left: 4px solid #dc3545;
+                background: #fff5f5;
+            }}
+            .fix-list li {{
+                border-left-color: #28a745;
+                background: #f0f8f4;
+            }}
+            .icon {{
+                margin-right: 8px;
+            }}
+            .empty-state {{
+                text-align: center;
+                color: #6c757d;
+                padding: 40px;
+                font-style: italic;
+            }}
+            .footer {{
+                text-align: center;
+                margin-top: 30px;
+                padding: 20px;
+                color: #6c757d;
+                font-size: 12px;
+            }}
+        </style>
+    </head>
     <body>
-        <h1>Style Validation Report</h1>
-        <p><strong>File:</strong> {file_name}</p>
-        <p><strong>Date:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC</p>
-        
-        <h2>Summary</h2>
-        <p>Issues Found: {len(issues)}</p>
-        <p>Issues Fixed: {len(fixes_applied)}</p>
-        
-        <h2>Issues Detected</h2>
-        <ul>
-            {''.join(f'<li>{issue}</li>' for issue in issues)}
-        </ul>
-        
-        <h2>Fixes Applied</h2>
-        <ul>
-            {''.join(f'<li>{fix}</li>' for fix in fixes_applied)}
-        </ul>
+        <div class="header">
+            <h1>📋 Style Validation Report</h1>
+            <span class="status-badge">{status}</span>
+            <div class="meta-info">
+                <div><strong>Document:</strong> {file_name}</div>
+                <div><strong>Validated:</strong> {datetime.now(timezone.utc).strftime('%d %B %Y at %H:%M:%S')} UTC</div>
+            </div>
+        </div>
+
+        <div class="summary">
+            <h2>Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="number">{len(issues)}</div>
+                    <div class="label">Issues Found</div>
+                </div>
+                <div class="summary-card">
+                    <div class="number">{len(fixes_applied)}</div>
+                    <div class="label">Auto-Fixed</div>
+                </div>
+                <div class="summary-card">
+                    <div class="number">{unfixed_issues}</div>
+                    <div class="label">Remaining Issues</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>✅ Fixes Applied ({len(fixes_applied)})</h2>
+            {'<ul class="fix-list">' + ''.join(f'<li><span class="icon">✓</span>{fix}</li>' for fix in fixes_applied) + '</ul>' if fixes_applied else '<div class="empty-state">No fixes were applied</div>'}
+        </div>
+
+        <div class="section">
+            <h2>⚠️ Issues Detected ({len(issues)})</h2>
+            {'<ul class="issue-list">' + ''.join(f'<li><span class="icon">⚠</span>{issue}</li>' for issue in issues) + '</ul>' if issues else '<div class="empty-state">No issues detected</div>'}
+        </div>
+
+        <div class="footer">
+            <p>Generated by Mace Style Validator | Control Centre Writing Style Guide</p>
+            <p>Powered by Azure Functions & Claude AI</p>
+        </div>
     </body>
     </html>
     """
