@@ -405,15 +405,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # 1. Parse request
         logging.info('Step 1: Parsing request...')
         req_body = req.get_json()
-        logging.info(f"Full request body: {json.dumps(req_body)}")
+        logging.info(f"Request keys: {list(req_body.keys())}")
 
         item_id = req_body.get('itemId') or req_body.get('ID')
-
-        # Try multiple possible parameter names for file URL
-        file_url = (req_body.get('fileUrl') or
-                   req_body.get('FileRef') or
-                   req_body.get('ServerRelativeUrl') or
-                   req_body.get('fileRef'))
 
         # Try multiple possible parameter names for file name
         file_name = (req_body.get('fileName') or
@@ -422,7 +416,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         file_extension = os.path.splitext(file_name)[1].lower() if file_name else ''
 
-        logging.info(f"Request params - File: {file_name}, ID: {item_id}, URL: {file_url}")
+        # Check if file content is provided directly (base64 encoded)
+        file_content_base64 = req_body.get('fileContent')
+
+        # Try multiple possible parameter names for file URL (for legacy support)
+        file_url = (req_body.get('fileUrl') or
+                   req_body.get('FileRef') or
+                   req_body.get('ServerRelativeUrl') or
+                   req_body.get('fileRef'))
+
+        logging.info(f"Request params - File: {file_name}, ID: {item_id}, Has content: {bool(file_content_base64)}, URL: {file_url}")
 
         # 2. Get Microsoft Graph API token
         logging.info('Step 2: Acquiring Graph API token...')
@@ -438,9 +441,20 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         rules = fetch_validation_rules(token)
         logging.info(f"Loaded {len(rules)} validation rules")
 
-        # 5. Download file
-        logging.info('Step 5: Downloading file...')
-        file_stream = download_file(token, file_url)
+        # 5. Get file content
+        if file_content_base64:
+            # File content provided directly as base64
+            logging.info('Step 5: Decoding file content from base64...')
+            import base64
+            file_bytes = base64.b64decode(file_content_base64)
+            file_stream = BytesIO(file_bytes)
+            logging.info(f"File decoded successfully, size: {len(file_bytes)} bytes")
+        elif file_url:
+            # Download file from SharePoint using Graph API
+            logging.info('Step 5: Downloading file from SharePoint...')
+            file_stream = download_file(token, file_url)
+        else:
+            raise ValueError("Either fileContent or fileUrl must be provided")
         
         # 6. Validate based on file type
         logging.info(f'Step 6: Validating document type {file_extension}...')
@@ -468,22 +482,31 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 status_code=400
             )
 
-        # 7. Upload fixed file (overwrite original)
-        if result['fixes_applied']:
+        # 7. Upload fixed file (overwrite original) - only if file_url is provided
+        if file_url and result['fixes_applied']:
             logging.info(f'Step 7: Uploading fixed document ({len(result["fixes_applied"])} fixes)...')
             upload_file(token, fixed_stream, file_url)
+        elif not file_url:
+            logging.info('Step 7: Skipping upload (no file URL provided, file content was sent directly)')
         else:
             logging.info('Step 7: No fixes to upload')
 
-        # 8. Generate and upload report
-        logging.info('Step 8: Generating and uploading report...')
+        # 8. Generate report
+        logging.info('Step 8: Generating report...')
         report_html = generate_report(file_name, result['issues'], result['fixes_applied'])
-        report_stream = BytesIO(report_html.encode('utf-8'))
-        report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.html"
-        report_folder = os.path.dirname(file_url) if file_url else ""
-        report_path = f"{report_folder}/{report_filename}" if report_folder else f"/{report_filename}"
-        logging.info(f"Report will be uploaded to: {report_path}")
-        report_url = upload_file(token, report_stream, report_path)
+        report_url = None
+
+        # Upload report only if we have a file URL
+        if file_url:
+            logging.info('Uploading report to SharePoint...')
+            report_stream = BytesIO(report_html.encode('utf-8'))
+            report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.html"
+            report_folder = os.path.dirname(file_url)
+            report_path = f"{report_folder}/{report_filename}" if report_folder else f"/{report_filename}"
+            logging.info(f"Report will be uploaded to: {report_path}")
+            report_url = upload_file(token, report_stream, report_path)
+        else:
+            logging.info('Skipping report upload (no file URL provided)')
 
         # 9. Update validation status
         logging.info('Step 9: Updating final validation status...')
