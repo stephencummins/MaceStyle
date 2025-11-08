@@ -7,8 +7,6 @@
 
 Automated document validation system that enforces the **Mace Control Centre Writing Style Guide** using Azure Functions, Claude AI, and SharePoint integration.
 
-![Architecture Overview](docs/architecture-overview.png)
-
 ## 🚀 Features
 
 - **✅ Automatic Validation** - Documents validated on upload to SharePoint
