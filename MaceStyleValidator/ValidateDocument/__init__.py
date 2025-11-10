@@ -416,29 +416,133 @@ def check_word_colors(doc, rule):
 # ============================================
 def validate_visio_document(file_stream, rules):
     """Validate Visio document against rules"""
+    logging.info("Loading Visio document...")
     visio = VisioFile(file_stream)
+
+    page_count = len(visio.pages)
+    logging.info(f"Visio document loaded. Pages: {page_count}")
+
     issues = []
     fixes_applied = []
-    
-    # Filter rules for Visio documents
-    visio_rules = [r for r in rules if r['doc_type'] == 'Visio']
-    
-    for rule in visio_rules:
+
+    # Filter rules for Visio documents (including 'Both')
+    visio_rules = [r for r in rules if r['doc_type'] in ['Visio', 'Both']]
+    logging.info(f"Applying {len(visio_rules)} Visio validation rules")
+
+    # Split rules into AI-enabled and hard-coded
+    ai_rules = [r for r in visio_rules if r.get('use_ai', False)]
+    hard_coded_rules = [r for r in visio_rules if not r.get('use_ai', False)]
+
+    logging.info(f"AI-enabled rules: {len(ai_rules)}, Hard-coded rules: {len(hard_coded_rules)}")
+
+    # Extract all text from Visio shapes
+    shape_texts = []
+    for page in visio.pages:
+        shape_texts.extend(extract_shape_texts(page, page.child_shapes))
+
+    logging.info(f"Extracted text from {len(shape_texts)} shapes")
+
+    # Process AI-enabled rules if we have text
+    if ai_rules and shape_texts:
+        logging.info(f"Calling Claude AI for {len(ai_rules)} Visio rules...")
+        try:
+            # Combine all text for AI validation
+            combined_text = "\n\n".join([st['text'] for st in shape_texts if st['text'].strip()])
+
+            if combined_text.strip():
+                # Get Anthropic API key
+                api_key = os.environ.get("ANTHROPIC_API_KEY")
+                if api_key:
+                    from anthropic import Anthropic
+                    client = Anthropic(api_key=api_key)
+
+                    # Build dynamic prompt from rules
+                    prompt = build_dynamic_claude_prompt(ai_rules, combined_text)
+
+                    response = client.messages.create(
+                        model="claude-3-haiku-20240307",
+                        max_tokens=4096,
+                        temperature=0.3,
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+
+                    response_text = response.content[0].text
+                    json_start = response_text.find('{')
+                    json_end = response_text.rfind('}') + 1
+
+                    if json_start >= 0 and json_end > json_start:
+                        result_json = json.loads(response_text[json_start:json_end])
+                        corrected_text = result_json.get('corrected_text', '')
+                        changes_count = result_json.get('changes_made', 0)
+
+                        if changes_count > 0 and corrected_text:
+                            # Split corrected text back into shape texts
+                            corrected_parts = corrected_text.split('\n\n')
+
+                            # Apply corrections to shapes
+                            shapes_updated = 0
+                            for idx, shape_data in enumerate(shape_texts):
+                                if idx < len(corrected_parts):
+                                    new_text = corrected_parts[idx].strip()
+                                    if new_text != shape_data['text'].strip():
+                                        shape_data['shape'].text = new_text
+                                        shapes_updated += 1
+
+                            issues.append(f"Found {changes_count} style violations in Visio shapes")
+                            fixes_applied.append(f"Applied {changes_count} style corrections to {shapes_updated} shapes")
+                            logging.info(f"Claude corrections applied: {changes_count} changes in {shapes_updated} shapes")
+                        else:
+                            logging.info("No AI corrections needed")
+                else:
+                    logging.warning("ANTHROPIC_API_KEY not set - skipping AI validation")
+
+        except Exception as e:
+            logging.error(f"Claude validation failed for Visio: {str(e)}")
+            issues.append(f"AI validation failed: {str(e)}")
+
+    # Process hard-coded rules
+    for idx, rule in enumerate(hard_coded_rules):
+        logging.info(f"Processing Visio rule {idx+1}/{len(hard_coded_rules)}: {rule.get('title', 'Unknown')}")
+
         if rule['rule_type'] == 'Color':
             result = check_visio_colors(visio, rule)
             issues.extend(result['issues'])
             fixes_applied.extend(result['fixes'])
-            
+
         elif rule['rule_type'] == 'Font':
             result = check_visio_fonts(visio, rule)
             issues.extend(result['issues'])
             fixes_applied.extend(result['fixes'])
-    
+
+    logging.info(f"Visio validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
+
     return {
         'document': visio,
         'issues': issues,
         'fixes_applied': fixes_applied
     }
+
+def extract_shape_texts(page, shapes, shape_list=None):
+    """Recursively extract text from all shapes in a page"""
+    if shape_list is None:
+        shape_list = []
+
+    for shape in shapes:
+        # Get shape text
+        if hasattr(shape, 'text') and shape.text:
+            text = str(shape.text).strip()
+            if text:
+                shape_list.append({
+                    'shape': shape,
+                    'text': text,
+                    'page': page.name
+                })
+
+        # Recursively process child shapes
+        if hasattr(shape, 'child_shapes') and shape.child_shapes:
+            extract_shape_texts(page, shape.child_shapes, shape_list)
+
+    return shape_list
 
 def check_visio_colors(visio, rule):
     """Check and fix colors in Visio diagrams"""
