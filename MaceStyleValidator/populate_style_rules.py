@@ -816,6 +816,60 @@ def create_style_rules():
             "UseAI": False,  # Not implemented yet
             "Priority": 70
         },
+
+        # ============================================
+        # VISIO-SPECIFIC RULES (from PPM-GLO-DAE-DMT-PRO-001 analysis)
+        # ============================================
+        {
+            "Title": "Reference codes must be uppercase (e.g., DMT-ACT-001)",
+            "RuleType": "Capitalisation",
+            "DocumentType": "Visio",
+            "CheckValue": "ReferenceCodeCase",
+            "ExpectedValue": "UPPERCASE",
+            "AutoFix": True,
+            "UseAI": True,  # Use AI to detect and fix reference codes
+            "Priority": 75
+        },
+        {
+            "Title": "Avoid ampersand (&) in Visio diagrams - use 'and' instead",
+            "RuleType": "Punctuation",
+            "DocumentType": "Visio",
+            "CheckValue": "NoAmpersand",
+            "ExpectedValue": "and",
+            "AutoFix": True,
+            "UseAI": True,  # Use Claude to replace ampersands
+            "Priority": 76
+        },
+        {
+            "Title": "British spelling: 'Programme' not 'Program' (in UK/Mace context)",
+            "RuleType": "Language",
+            "DocumentType": "Both",
+            "CheckValue": "BritishSpelling_programme",
+            "ExpectedValue": "Programme",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 11
+        },
+        {
+            "Title": "Use 'Constructability' not 'Constructibility'",
+            "RuleType": "Language",
+            "DocumentType": "Both",
+            "CheckValue": "Constructability",
+            "ExpectedValue": "Constructability",
+            "AutoFix": True,
+            "UseAI": True,
+            "Priority": 77
+        },
+        {
+            "Title": "Project phases: Use G0-G1, G2-G4, G5 notation consistently",
+            "RuleType": "Language",
+            "DocumentType": "Visio",
+            "CheckValue": "PhaseNotation",
+            "ExpectedValue": "G0-G1",
+            "AutoFix": False,
+            "UseAI": False,  # Formatting rule
+            "Priority": 79
+        },
     ]
 
     return rules
