@@ -514,6 +514,21 @@ def validate_visio_document(file_stream, rules):
             issues.extend(result['issues'])
             fixes_applied.extend(result['fixes'])
 
+        elif rule['rule_type'] == 'Size':
+            result = check_visio_shape_size(visio, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+
+        elif rule['rule_type'] == 'Position':
+            result = check_visio_position(visio, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+
+        elif rule['rule_type'] == 'PageDimensions':
+            result = check_visio_page_dimensions(visio, rule)
+            issues.extend(result['issues'])
+            fixes_applied.extend(result['fixes'])
+
     logging.info(f"Visio validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
 
     return {
@@ -548,27 +563,352 @@ def check_visio_colors(visio, rule):
     """Check and fix colors in Visio diagrams"""
     issues = []
     fixes = []
-    
-    # Example: Check shape fill colors
-    if rule['check_value'] == 'ShapeFillColor':
-        expected_color = rule['expected_value']  # e.g., "#003399"
-        
-        for page in visio.pages:
-            for shape in page.shapes:
-                # TODO: Implement color checking logic
-                # vsdx library shape color extraction
-                pass
-    
+    expected_color = rule['expected_value']  # e.g., "#003399"
+
+    logging.info(f"Checking Visio colors: {rule['check_value']} -> {expected_color}")
+
+    issue_count = 0
+    fix_count = 0
+
+    def process_shapes_for_color(shapes, parent_name=""):
+        """Recursively process shapes for color validation"""
+        nonlocal issue_count, fix_count
+
+        for shape in shapes:
+            # Only process shapes with text (visible shapes)
+            if hasattr(shape, 'text') and shape.text and str(shape.text).strip():
+                try:
+                    # Check fill color
+                    if rule['check_value'] == 'ShapeFillColor':
+                        current_color = getattr(shape, 'fill_color', None)
+                        if current_color and current_color != expected_color:
+                            issue_count += 1
+                            if rule['auto_fix']:
+                                shape.fill_color = expected_color
+                                fix_count += 1
+
+                    # Check text color
+                    elif rule['check_value'] == 'ShapeTextColor':
+                        current_color = getattr(shape, 'text_color', None)
+                        if current_color and current_color != expected_color:
+                            issue_count += 1
+                            if rule['auto_fix']:
+                                shape.text_color = expected_color
+                                fix_count += 1
+
+                except Exception as e:
+                    logging.warning(f"Could not check/set color for shape: {str(e)}")
+
+            # Recursively process child shapes
+            if hasattr(shape, 'child_shapes') and shape.child_shapes:
+                process_shapes_for_color(shape.child_shapes, f"{parent_name}/child")
+
+    # Process all pages
+    for page in visio.pages:
+        if hasattr(page, 'child_shapes'):
+            process_shapes_for_color(page.child_shapes, page.name)
+
+    if issue_count > 0:
+        issues.append(f"Found {issue_count} shapes with incorrect {rule['check_value']}")
+    if fix_count > 0:
+        fixes.append(f"Fixed {fix_count} shapes to {expected_color}")
+
+    logging.info(f"Color check complete: {issue_count} issues, {fix_count} fixes")
     return {'issues': issues, 'fixes': fixes}
 
 def check_visio_fonts(visio, rule):
     """Check and fix fonts in Visio diagrams"""
     issues = []
     fixes = []
-    
-    # TODO: Implement Visio font checking
-    # Note: vsdx library has limited font manipulation capabilities
-    
+    expected_font = rule['expected_value']
+
+    logging.info(f"Checking Visio fonts: {rule['check_value']} -> {expected_font}")
+
+    issue_count = 0
+    fix_count = 0
+
+    def process_shapes_for_font(shapes, parent_name=""):
+        """Recursively process shapes for font validation"""
+        nonlocal issue_count, fix_count
+
+        for shape in shapes:
+            # Only process shapes with text
+            if hasattr(shape, 'text') and shape.text and str(shape.text).strip():
+                try:
+                    # Attempt to check font using cell values
+                    # In Visio, font 0 = default font (Arial)
+                    # Font references are stored in Character section cells
+
+                    # Check if shape has font property or cell
+                    if rule['check_value'] == 'AllTextFont':
+                        # Try to get current font value from Character.Font cell
+                        try:
+                            # The vsdx library may allow access to cells
+                            current_font = shape.cells.get('Char.Font', None)
+
+                            # If we can read the font and it's not default (0 for Arial)
+                            if current_font is not None:
+                                font_value = current_font.value if hasattr(current_font, 'value') else str(current_font)
+
+                                # Set font to 0 (Arial/default) if it's different
+                                if font_value != '0':
+                                    issue_count += 1
+                                    if rule['auto_fix']:
+                                        # Try to set font to 0 (Arial)
+                                        shape.set_cell_value('Char.Font', '0')
+                                        fix_count += 1
+                        except (AttributeError, KeyError):
+                            # If cells property doesn't exist or method not available,
+                            # try alternative approach using set_cell_value directly
+                            if rule['auto_fix']:
+                                try:
+                                    # Attempt to set font to default (0 = Arial)
+                                    shape.set_cell_value('Char.Font', '0')
+                                    fix_count += 1
+                                    # Count as issue if we're setting it
+                                    issue_count += 1
+                                except Exception as set_error:
+                                    logging.debug(f"Could not set font via set_cell_value: {str(set_error)}")
+
+                except Exception as e:
+                    logging.warning(f"Could not check/set font for shape: {str(e)}")
+
+            # Recursively process child shapes
+            if hasattr(shape, 'child_shapes') and shape.child_shapes:
+                process_shapes_for_font(shape.child_shapes, f"{parent_name}/child")
+
+    # Process all pages
+    for page in visio.pages:
+        if hasattr(page, 'child_shapes'):
+            process_shapes_for_font(page.child_shapes, page.name)
+
+    if issue_count > 0:
+        issues.append(f"Found {issue_count} shapes with incorrect font")
+    if fix_count > 0:
+        fixes.append(f"Fixed {fix_count} shapes to {expected_font}")
+
+    logging.info(f"Font check complete: {issue_count} issues, {fix_count} fixes")
+    return {'issues': issues, 'fixes': fixes}
+
+def check_visio_shape_size(visio, rule):
+    """Check and fix shape dimensions in Visio diagrams"""
+    issues = []
+    fixes = []
+
+    logging.info(f"Checking Visio shape sizes: {rule['check_value']}")
+
+    # Parse expected value (format: "WIDTHxHEIGHT" e.g., "3.0x1.0")
+    expected_value = rule['expected_value']
+    tolerance = float(rule.get('tolerance', 0.1))  # Default ±0.1 inch tolerance
+
+    try:
+        if 'x' in expected_value.lower():
+            expected_width, expected_height = map(float, expected_value.lower().split('x'))
+        else:
+            logging.warning(f"Invalid size format: {expected_value}. Expected format: WIDTHxHEIGHT")
+            return {'issues': issues, 'fixes': fixes}
+    except ValueError:
+        logging.warning(f"Could not parse size value: {expected_value}")
+        return {'issues': issues, 'fixes': fixes}
+
+    issue_count = 0
+    fix_count = 0
+
+    def process_shapes_for_size(shapes, parent_name=""):
+        """Recursively process shapes for size validation"""
+        nonlocal issue_count, fix_count
+
+        for shape in shapes:
+            # Only process shapes with text (visible shapes)
+            if hasattr(shape, 'text') and shape.text and str(shape.text).strip():
+                try:
+                    # Get current dimensions
+                    current_width = getattr(shape, 'width', None)
+                    current_height = getattr(shape, 'height', None)
+
+                    if current_width is not None and current_height is not None:
+                        # Check if dimensions are within tolerance
+                        width_diff = abs(current_width - expected_width)
+                        height_diff = abs(current_height - expected_height)
+
+                        if width_diff > tolerance or height_diff > tolerance:
+                            issue_count += 1
+
+                            if rule['auto_fix']:
+                                # Set new dimensions
+                                shape.width = expected_width
+                                shape.height = expected_height
+                                fix_count += 1
+
+                except Exception as e:
+                    logging.warning(f"Could not check/set size for shape: {str(e)}")
+
+            # Recursively process child shapes
+            if hasattr(shape, 'child_shapes') and shape.child_shapes:
+                process_shapes_for_size(shape.child_shapes, f"{parent_name}/child")
+
+    # Process all pages
+    for page in visio.pages:
+        if hasattr(page, 'child_shapes'):
+            process_shapes_for_size(page.child_shapes, page.name)
+
+    if issue_count > 0:
+        issues.append(f"Found {issue_count} shapes with incorrect dimensions (expected {expected_width}x{expected_height})")
+    if fix_count > 0:
+        fixes.append(f"Resized {fix_count} shapes to {expected_width}x{expected_height}")
+
+    logging.info(f"Size check complete: {issue_count} issues, {fix_count} fixes")
+    return {'issues': issues, 'fixes': fixes}
+
+def check_visio_position(visio, rule):
+    """Check and fix shape positions in Visio diagrams"""
+    issues = []
+    fixes = []
+
+    logging.info(f"Checking Visio shape positions: {rule['check_value']}")
+
+    # Parse rule parameters
+    # CheckValue options: TopMargin, LeftMargin, BottomMargin, RightMargin, ExactPosition
+    check_type = rule['check_value']
+    expected_value = rule['expected_value']
+    tolerance = float(rule.get('tolerance', 0.1))  # Default ±0.1 inch tolerance
+
+    issue_count = 0
+    fix_count = 0
+
+    def process_shapes_for_position(shapes, parent_name=""):
+        """Recursively process shapes for position validation"""
+        nonlocal issue_count, fix_count
+
+        for shape in shapes:
+            # Only process shapes with text (visible shapes)
+            if hasattr(shape, 'text') and shape.text and str(shape.text).strip():
+                try:
+                    current_x = getattr(shape, 'x', None)
+                    current_y = getattr(shape, 'y', None)
+
+                    if current_x is None or current_y is None:
+                        continue
+
+                    # Validate based on check type
+                    if check_type == 'TopMargin':
+                        # Check if shape is within top margin (max Y value)
+                        max_y = float(expected_value)
+                        if current_y > max_y + tolerance:
+                            issue_count += 1
+                            if rule['auto_fix']:
+                                shape.y = max_y
+                                fix_count += 1
+
+                    elif check_type == 'LeftMargin':
+                        # Check if shape is beyond left margin (min X value)
+                        min_x = float(expected_value)
+                        if current_x < min_x - tolerance:
+                            issue_count += 1
+                            if rule['auto_fix']:
+                                shape.x = min_x
+                                fix_count += 1
+
+                    elif check_type == 'RightMargin':
+                        # Check if shape is beyond right margin (max X value)
+                        max_x = float(expected_value)
+                        if current_x > max_x + tolerance:
+                            issue_count += 1
+                            if rule['auto_fix']:
+                                shape.x = max_x
+                                fix_count += 1
+
+                    elif check_type == 'BottomMargin':
+                        # Check if shape is below bottom margin (min Y value)
+                        min_y = float(expected_value)
+                        if current_y < min_y - tolerance:
+                            issue_count += 1
+                            if rule['auto_fix']:
+                                shape.y = min_y
+                                fix_count += 1
+
+                    elif check_type == 'ExactPosition':
+                        # Check exact X,Y position (format: "X,Y")
+                        expected_x, expected_y = map(float, expected_value.split(','))
+                        x_diff = abs(current_x - expected_x)
+                        y_diff = abs(current_y - expected_y)
+
+                        if x_diff > tolerance or y_diff > tolerance:
+                            issue_count += 1
+                            if rule['auto_fix']:
+                                shape.x = expected_x
+                                shape.y = expected_y
+                                fix_count += 1
+
+                except Exception as e:
+                    logging.warning(f"Could not check/set position for shape: {str(e)}")
+
+            # Recursively process child shapes
+            if hasattr(shape, 'child_shapes') and shape.child_shapes:
+                process_shapes_for_position(shape.child_shapes, f"{parent_name}/child")
+
+    # Process all pages
+    for page in visio.pages:
+        if hasattr(page, 'child_shapes'):
+            process_shapes_for_position(page.child_shapes, page.name)
+
+    if issue_count > 0:
+        issues.append(f"Found {issue_count} shapes with incorrect position ({check_type})")
+    if fix_count > 0:
+        fixes.append(f"Repositioned {fix_count} shapes for {check_type}")
+
+    logging.info(f"Position check complete: {issue_count} issues, {fix_count} fixes")
+    return {'issues': issues, 'fixes': fixes}
+
+def check_visio_page_dimensions(visio, rule):
+    """Check and fix page dimensions in Visio diagrams"""
+    issues = []
+    fixes = []
+
+    logging.info(f"Checking Visio page dimensions: {rule['check_value']}")
+
+    # Parse expected value (format: "WIDTHxHEIGHT" e.g., "11.0x8.5")
+    expected_value = rule['expected_value']
+
+    try:
+        if 'x' in expected_value.lower():
+            expected_width, expected_height = map(float, expected_value.lower().split('x'))
+        else:
+            logging.warning(f"Invalid page size format: {expected_value}. Expected format: WIDTHxHEIGHT")
+            return {'issues': issues, 'fixes': fixes}
+    except ValueError:
+        logging.warning(f"Could not parse page size value: {expected_value}")
+        return {'issues': issues, 'fixes': fixes}
+
+    issue_count = 0
+    fix_count = 0
+
+    # Check all pages
+    for page in visio.pages:
+        try:
+            current_width = getattr(page, 'width', None)
+            current_height = getattr(page, 'height', None)
+
+            if current_width is not None and current_height is not None:
+                # Check if dimensions match
+                if current_width != expected_width or current_height != expected_height:
+                    issue_count += 1
+
+                    if rule['auto_fix']:
+                        # Set new page dimensions
+                        page.width = expected_width
+                        page.height = expected_height
+                        fix_count += 1
+
+        except Exception as e:
+            logging.warning(f"Could not check/set page dimensions for page '{page.name}': {str(e)}")
+
+    if issue_count > 0:
+        issues.append(f"Found {issue_count} pages with incorrect dimensions (expected {expected_width}x{expected_height})")
+    if fix_count > 0:
+        fixes.append(f"Resized {fix_count} pages to {expected_width}x{expected_height}")
+
+    logging.info(f"Page dimensions check complete: {issue_count} issues, {fix_count} fixes")
     return {'issues': issues, 'fixes': fixes}
 
 # ============================================

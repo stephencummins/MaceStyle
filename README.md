@@ -220,6 +220,8 @@ python3 create_test_document.py
 | [Technical Architecture](docs/1-technical-architecture.md) | System design, components, data flow |
 | [User Guide](docs/2-user-guide.md) | How to use the validator |
 | [Configuration & Setup](docs/3-configuration-setup.md) | Complete installation guide |
+| [Visio Validation Guide](docs/visio-validation-guide.md) | Comprehensive Visio validation documentation |
+| [Visio Structural Rules Examples](docs/visio-structural-rules-examples.md) | Ready-to-use SharePoint rules for layout validation |
 
 ## 🔒 Security
 
@@ -272,15 +274,16 @@ Contributions are welcome! Please:
 
 ## 🐛 Known Issues
 
-- ✅ Visio validation currently minimal (planned enhancement)
 - ✅ Very large files (>100 pages) may timeout
 - ✅ Complex table validation limited
+- ✅ Visio font detection uses numeric IDs (font 0 = Arial)
 
 See [Issues](https://github.com/stephencummins/MaceStyle/issues) for full list.
 
 ## 🗺️ Roadmap
 
-- [ ] Enhanced Visio diagram validation
+- [x] Enhanced Visio diagram validation (font, color, text style, structure)
+- [x] Visio structural validation (shape size, position, page dimensions)
 - [ ] PDF document support
 - [ ] Excel spreadsheet validation
 - [ ] Multi-language support

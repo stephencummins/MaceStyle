@@ -1,0 +1,45 @@
+
+QUICK SETUP CHECKLIST
+=====================
+
+□ Open Microsoft Visio Desktop (required, not Visio Online)
+□ Create new blank drawing
+□ Change page size to 8.5" × 11.0" portrait (wrong size)
+
+Add Shapes with Violations:
+□ 2 title boxes (wrong sizes: 3.5"×1.2" and 2.5"×0.8")
+□ 2 icons (wrong sizes: 0.7"×0.7" and 0.3"×0.3")
+□ 2 process boxes (wrong sizes: 2.5"×2.0" and 1.5"×1.0")
+□ 1 header (wrong position: Y=2.5")
+□ 1 sidebar (wrong position: X=0.5")
+□ 1 right note (wrong position: X=10.5")
+□ 1 footer note (wrong position: Y=0.5")
+□ 1 logo (wrong position: X=1.0", Y=7.0")
+□ 1 version footer (wrong position: X=9.0", Y=1.0")
+
+Add Text with Style Violations:
+□ American spelling (finalized, color, analyze, etc.)
+□ Contractions (can't, won't, don't, etc.)
+□ Symbols (M&S, 50%, etc.)
+□ Unformatted numbers (1000, 5000, etc.)
+
+Apply Wrong Formatting:
+□ Set various fonts (Calibri, Times New Roman, etc.)
+□ Apply various colors (red, green, yellow fills)
+□ Apply colored text (red, blue, purple)
+
+Save and Test:
+□ Save as: test_structural_validation.vsdx
+□ Upload to SharePoint document library
+□ Wait for validation
+□ Download corrected file
+□ View validation report
+
+Expected Results:
+□ Page resized to 11.0"×8.5"
+□ All shapes resized to standards
+□ All shapes repositioned to margins/exact positions
+□ All fonts changed to Arial
+□ All colors changed to brand standards
+□ All text corrected for British English
+□ Validation report shows all fixes

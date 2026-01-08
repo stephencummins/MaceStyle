@@ -1,0 +1,253 @@
+Extracted from: /Users/stephen/Downloads/Process Map_PowerPoint Template.pptx
+Total slides: 13
+======================================================================
+
+
+======================================================================
+SLIDE 1
+======================================================================
+
+Visio PowerPoint version
+
+Please use this template and the team will create your map in Visio.Please review the guidance page, which includes an example process map and explains what each box should contain. Copy and paste the provided shapes (Slide 3) into your process map, placing them in the appropriate swim lane as directed on the guidance. Complete your map on your function tab (Slide 4-12).
+
+
+======================================================================
+SLIDE 2
+======================================================================
+
+2
+
+
+======================================================================
+SLIDE 3
+======================================================================
+
+Process
+
+XX-000001
+
+Process
+
+XX-000001
+
+Process
+
+XX-000001
+
+Process
+
+XX-000001
+
+Process
+
+XX-000001
+
+Copy and paste these shapes onto your process map in the appropriate swim lane.
+
+Start
+
+Set Up
+
+Approve
+
+
+======================================================================
+SLIDE 4
+======================================================================
+
+PMO - Sub Function
+
+New Hospitals Programme
+
+NHS
+
+Healthy Delivery Partnership
+
+Delivery Team
+
+Contractor/ Supply Chain
+
+Document Ref:
+
+Insert Process Title
+
+
+======================================================================
+SLIDE 5
+======================================================================
+
+People - Sub Function
+
+New Hospitals Programme
+
+NHS
+
+Healthy Delivery Partnership
+
+Delivery Team
+
+Contractor/ Supply Chain
+
+Document Ref:
+
+Insert Process Title
+
+
+======================================================================
+SLIDE 6
+======================================================================
+
+Digital - Sub Function
+
+New Hospitals Programme
+
+NHS
+
+Healthy Delivery Partnership
+
+Delivery Team
+
+Contractor/ Supply Chain
+
+Document Ref:
+
+Insert Process Title
+
+
+======================================================================
+SLIDE 7
+======================================================================
+
+Commercial - Sub Function
+
+New Hospitals Programme
+
+NHS
+
+Healthy Delivery Partnership
+
+Delivery Team
+
+Contractor/ Supply Chain
+
+Document Ref:
+
+Insert Process Title
+
+
+======================================================================
+SLIDE 8
+======================================================================
+
+Technical Services - Sub Function
+
+New Hospitals Programme
+
+NHS
+
+Healthy Delivery Partnership
+
+Delivery Team
+
+Contractor/ Supply Chain
+
+Document Ref:
+
+Insert Process Title
+
+
+======================================================================
+SLIDE 9
+======================================================================
+
+Delivery - Sub Function
+
+New Hospitals Programme
+
+NHS
+
+Healthy Delivery Partnership
+
+Delivery Team
+
+Contractor/ Supply Chain
+
+Document Ref:
+
+Insert Process Title
+
+
+======================================================================
+SLIDE 10
+======================================================================
+
+Industrialisation- Sub Function
+
+New Hospitals Programme
+
+NHS
+
+Healthy Delivery Partnership
+
+Delivery Team
+
+Contractor/ Supply Chain
+
+Document Ref:
+
+Insert Process Title
+
+
+======================================================================
+SLIDE 11
+======================================================================
+
+PSMO - Sub Function
+
+New Hospitals Programme
+
+NHS
+
+Healthy Delivery Partnership
+
+Delivery Team
+
+Contractor/ Supply Chain
+
+Document Ref:
+
+Insert Process Title
+
+
+======================================================================
+SLIDE 12
+======================================================================
+
+Operations (Transformation) - Sub Function
+
+New Hospitals Programme
+
+NHS
+
+Healthy Delivery Partnership
+
+Delivery Team
+
+Contractor/ Supply Chain
+
+Document Ref:
+
+Insert Process Title
+
+
+======================================================================
+SLIDE 13
+======================================================================
+
+Insert Process Title
+
+Function - Sub Function
+
+Document Ref:
+

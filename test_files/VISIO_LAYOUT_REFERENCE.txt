@@ -1,0 +1,39 @@
+
+VISUAL REFERENCE - Shape Placement Guide
+=========================================
+
+Page Layout: 11.0" x 8.5" (Letter Landscape)
+Coordinate System: Origin at bottom-left
+
+    Y
+    ↑
+8.5 ├──────────────────────────────────────────┐ TOP
+    │                                          │
+7.5 │  [Logo 0.5,7.5]    [Title Center]      │
+    │                                          │
+6.0 │                                          │
+    │                                          │
+4.0 │  [Sidebar]      [Process Boxes]         │
+    │  X=0.5          X=4.0                   │
+2.0 ├─[Header Margin Y=2.0]──────────────────┤
+    │                                          │
+1.0 ├─[Footer Margin Y=1.0]──────────────────┤
+    │                              [Footer]   │
+0.0 └──────────────────────────────────────────┘ BOTTOM
+    0   1.0              5.0         10.0   11.0  → X
+      LEFT            CENTER        RIGHT
+
+Key Zones:
+- Top Margin: Y ≤ 2.0" (headers stay below this line)
+- Left Margin: X ≥ 1.0" (content starts after this line)
+- Right Margin: X ≤ 10.0" (content ends before this line)
+- Bottom Margin: Y ≥ 1.0" (footers stay above this line)
+
+Standard Shape Sizes:
+- Title Boxes: 3.0" × 1.0"
+- Icons: 0.5" × 0.5"
+- Process Boxes: 2.0" × 1.5"
+
+Exact Positions:
+- Logo: (0.5", 7.5") - top-left corner
+- Footer: (9.5", 0.5") - bottom-right corner
