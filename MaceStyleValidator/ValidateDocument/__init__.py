@@ -1484,17 +1484,23 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         report_html = generate_report(file_name, result['issues'], result['fixes_applied'])
         report_url = None
 
-        # Upload report only if we have a file URL
+        # Always upload report to SharePoint
+        logging.info('Uploading report to SharePoint...')
+        report_stream = BytesIO(report_html.encode('utf-8'))
+        report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.html"
         if file_url:
-            logging.info('Uploading report to SharePoint...')
-            report_stream = BytesIO(report_html.encode('utf-8'))
-            report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.html"
             report_folder = os.path.dirname(file_url)
             report_path = f"{report_folder}/{report_filename}" if report_folder else f"/{report_filename}"
-            logging.info(f"Report will be uploaded to: {report_path}")
-            report_url = upload_file(token, report_stream, report_path)
         else:
-            logging.info('Skipping report upload (no file URL provided)')
+            # No file_url — upload to a Validation Reports folder in the default drive
+            report_path = f"/Validation Reports/{report_filename}"
+        logging.info(f"Report will be uploaded to: {report_path}")
+        try:
+            report_url = upload_file(token, report_stream, report_path)
+            logging.info(f"Report uploaded: {report_url}")
+        except Exception as upload_err:
+            logging.error(f"Failed to upload report: {str(upload_err)}")
+            report_url = None
 
         # 8.5. Save validation result to Validation Results list
         logging.info('Step 8.5: Saving validation result to Validation Results list...')
