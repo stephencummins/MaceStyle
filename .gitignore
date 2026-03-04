@@ -1,1 +1,8 @@
-404: Not Found
+__pycache__/
+*.py[cod]
+.env
+local.settings.json
+test_output_*.docx
+test_output_*.html
+*.pdf
+.DS_Store
