@@ -253,6 +253,30 @@ def update_validation_status(token, item_id, status, report_url, list_name="Docu
 # ============================================
 # VALIDATION LOGIC - WORD
 # ============================================
+def _normalise_issue(item, rule=None):
+    """Ensure an issue item is a structured dict"""
+    if isinstance(item, dict) and 'rule_name' in item:
+        return item
+    return {
+        'rule_name': rule.get('title', 'Unknown') if rule else 'Unknown',
+        'rule_type': rule.get('rule_type', 'Unknown') if rule else 'Unknown',
+        'description': str(item),
+        'location': 'Document-wide',
+        'priority': rule.get('priority', 999) if rule else 999
+    }
+
+def _normalise_fix(item, rule=None):
+    """Ensure a fix item is a structured dict"""
+    if isinstance(item, dict) and 'rule_name' in item:
+        return item
+    return {
+        'rule_name': rule.get('title', 'Unknown') if rule else 'Unknown',
+        'rule_type': rule.get('rule_type', 'Unknown') if rule else 'Unknown',
+        'found_value': 'Non-compliant value',
+        'fixed_value': str(item),
+        'location': 'Document-wide'
+    }
+
 def validate_word_document(file_stream, rules):
     """Validate Word document against rules"""
     logging.info("Loading Word document...")
@@ -279,44 +303,44 @@ def validate_word_document(file_stream, rules):
         logging.info(f"Calling Claude AI for {len(ai_rules)} rules...")
         try:
             ai_result = validate_with_claude(doc, ai_rules)
-            issues.extend(ai_result.get('issues', []))
-            fixes_applied.extend(ai_result.get('fixes_applied', []))
+            for item in ai_result.get('issues', []):
+                issues.append(_normalise_issue(item, {'title': 'AI Style Check', 'rule_type': 'AI', 'priority': 1}))
+            for item in ai_result.get('fixes_applied', []):
+                fixes_applied.append(_normalise_fix(item, {'title': 'AI Style Check', 'rule_type': 'AI'}))
             logging.info(f"Claude validation complete: {len(ai_result.get('issues', []))} issues, {len(ai_result.get('fixes_applied', []))} fixes")
         except Exception as e:
             logging.error(f"Claude validation failed: {str(e)}")
-            issues.append(f"AI validation failed: {str(e)}")
+            issues.append({
+                'rule_name': 'AI Validation',
+                'rule_type': 'AI',
+                'description': f"AI validation failed: {str(e)}",
+                'location': 'N/A',
+                'priority': 1
+            })
 
     # Process hard-coded rules
     for idx, rule in enumerate(hard_coded_rules):
         logging.info(f"Processing rule {idx+1}/{len(hard_coded_rules)}: {rule.get('title', 'Unknown')}")
 
+        result = None
         if rule['rule_type'] == 'Font':
             result = check_word_fonts(doc, rule)
-            issues.extend(result['issues'])
-            fixes_applied.extend(result['fixes'])
-
         elif rule['rule_type'] == 'Color':
             result = check_word_colors(doc, rule)
-            issues.extend(result['issues'])
-            fixes_applied.extend(result['fixes'])
-
         elif rule['rule_type'] == 'Language':
             result = validate_language_rules(doc, rule)
-            issues.extend(result['issues'])
-            fixes_applied.extend(result['fixes'])
-
         elif rule['rule_type'] == 'Grammar':
             result = validate_grammar_rules(doc, rule)
-            issues.extend(result['issues'])
-            fixes_applied.extend(result['fixes'])
-
         elif rule['rule_type'] == 'Punctuation':
             result = validate_punctuation_rules(doc, rule)
-            issues.extend(result['issues'])
-            fixes_applied.extend(result['fixes'])
-
         else:
             logging.info(f"Rule type '{rule['rule_type']}' not yet implemented")
+
+        if result:
+            for item in result.get('issues', []):
+                issues.append(_normalise_issue(item, rule))
+            for item in result.get('fixes', []):
+                fixes_applied.append(_normalise_fix(item, rule))
 
     logging.info(f"Validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
 
@@ -350,7 +374,7 @@ def check_word_fonts(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for paragraph in doc.paragraphs:
+        for para_idx, paragraph in enumerate(doc.paragraphs):
             for run in paragraph.runs:
                 if run.text.strip():  # Only check runs with actual text
                     current_font = run.font.name
@@ -363,26 +387,50 @@ def check_word_fonts(doc, rule):
                             run.font.name = expected_font
                             fix_count += 1
 
-        if issue_count > 0:
-            issues.append(f"Found {issue_count} text runs with incorrect font")
+        if issue_count > 0 and not rule['auto_fix']:
+            issues.append({
+                'rule_name': rule.get('title', 'All Text Font'),
+                'rule_type': rule['rule_type'],
+                'description': f"Found {issue_count} text runs with incorrect font (not {expected_font})",
+                'location': 'Document-wide',
+                'priority': rule.get('priority', 999)
+            })
         if fix_count > 0:
-            fixes.append(f"Fixed {fix_count} text runs to {expected_font}")
+            fixes.append({
+                'rule_name': rule.get('title', 'All Text Font'),
+                'rule_type': rule['rule_type'],
+                'found_value': f'{issue_count} runs with wrong font',
+                'fixed_value': expected_font,
+                'location': f'Document-wide ({fix_count} runs)'
+            })
 
         logging.info(f"Font check complete: {issue_count} issues, {fix_count} fixes")
 
     # Check Heading 1 font
     elif rule['check_value'] == 'Heading1Font':
-        for paragraph in doc.paragraphs:
+        for para_idx, paragraph in enumerate(doc.paragraphs):
             if paragraph.style.name == 'Heading 1':
                 current_font = paragraph.runs[0].font.name if paragraph.runs else None
 
                 if current_font is None or current_font != expected_font:
-                    issues.append(f"Heading 1 has incorrect font: {current_font}")
-
                     if rule['auto_fix']:
                         for run in paragraph.runs:
                             run.font.name = expected_font
-                        fixes.append(f"Fixed Heading 1 font to {expected_font}")
+                        fixes.append({
+                            'rule_name': rule.get('title', 'Heading 1 Font'),
+                            'rule_type': rule['rule_type'],
+                            'found_value': str(current_font),
+                            'fixed_value': expected_font,
+                            'location': f'Paragraph {para_idx + 1} (Heading 1)'
+                        })
+                    else:
+                        issues.append({
+                            'rule_name': rule.get('title', 'Heading 1 Font'),
+                            'rule_type': rule['rule_type'],
+                            'description': f"Heading 1 has incorrect font: {current_font}",
+                            'location': f'Paragraph {para_idx + 1}',
+                            'priority': rule.get('priority', 999)
+                        })
 
     return {'issues': issues, 'fixes': fixes}
 
@@ -390,25 +438,37 @@ def check_word_colors(doc, rule):
     """Check and fix color issues in Word doc"""
     issues = []
     fixes = []
-    
+
     # Example: Check heading color
     if rule['check_value'] == 'Heading1Color':
         # Parse expected RGB from rule (e.g., "0,51,153")
         expected_rgb = tuple(map(int, rule['expected_value'].split(',')))
-        
-        for paragraph in doc.paragraphs:
+
+        for para_idx, paragraph in enumerate(doc.paragraphs):
             if paragraph.style.name == 'Heading 1':
                 for run in paragraph.runs:
                     if run.font.color.rgb:
                         current_rgb = run.font.color.rgb
-                        
+
                         if current_rgb != expected_rgb:
-                            issues.append(f"Heading 1 color incorrect: {current_rgb}")
-                            
                             if rule['auto_fix']:
                                 run.font.color.rgb = RGBColor(*expected_rgb)
-                                fixes.append(f"Fixed Heading 1 color to {expected_rgb}")
-    
+                                fixes.append({
+                                    'rule_name': rule.get('title', 'Heading 1 Color'),
+                                    'rule_type': rule['rule_type'],
+                                    'found_value': str(current_rgb),
+                                    'fixed_value': str(expected_rgb),
+                                    'location': f'Paragraph {para_idx + 1} (Heading 1)'
+                                })
+                            else:
+                                issues.append({
+                                    'rule_name': rule.get('title', 'Heading 1 Color'),
+                                    'rule_type': rule['rule_type'],
+                                    'description': f"Heading 1 color incorrect: {current_rgb}",
+                                    'location': f'Paragraph {para_idx + 1}',
+                                    'priority': rule.get('priority', 999)
+                                })
+
     return {'issues': issues, 'fixes': fixes}
 
 # ============================================
@@ -914,172 +974,287 @@ def check_visio_page_dimensions(visio, rule):
 # ============================================
 # REPORT GENERATION
 # ============================================
+def _escape_html(text):
+    """Escape HTML special characters"""
+    if text is None:
+        return ''
+    return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
+
 def generate_report(file_name, issues, fixes_applied):
-    """Generate validation report as HTML"""
-    unfixed_issues = len(issues) - len(fixes_applied)
-    status = "PASSED" if unfixed_issues == 0 else "FAILED"
-    status_color = "#28a745" if unfixed_issues == 0 else "#dc3545"
+    """Generate validation report as HTML with Mace branding.
 
-    report_html = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Validation Report - {file_name}</title>
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                max-width: 1200px;
-                margin: 20px auto;
-                padding: 20px;
-                background-color: #f5f5f5;
-            }}
-            .header {{
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 30px;
-                border-radius: 10px;
-                margin-bottom: 30px;
-            }}
-            .header h1 {{
-                margin: 0 0 10px 0;
-            }}
-            .status-badge {{
-                display: inline-block;
-                padding: 8px 20px;
-                background-color: {status_color};
-                color: white;
-                border-radius: 20px;
-                font-weight: bold;
-                font-size: 14px;
-            }}
-            .meta-info {{
-                margin-top: 15px;
-                font-size: 14px;
-                opacity: 0.9;
-            }}
-            .summary {{
-                background: white;
-                padding: 25px;
-                border-radius: 10px;
-                margin-bottom: 20px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }}
-            .summary-grid {{
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-                gap: 20px;
-                margin-top: 20px;
-            }}
-            .summary-card {{
-                background: #f8f9fa;
-                padding: 20px;
-                border-radius: 8px;
-                text-align: center;
-                border-left: 4px solid #667eea;
-            }}
-            .summary-card .number {{
-                font-size: 36px;
-                font-weight: bold;
-                color: #667eea;
-                margin-bottom: 5px;
-            }}
-            .summary-card .label {{
-                font-size: 14px;
-                color: #6c757d;
-                text-transform: uppercase;
-            }}
-            .section {{
-                background: white;
-                padding: 25px;
-                border-radius: 10px;
-                margin-bottom: 20px;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }}
-            .section h2 {{
-                color: #333;
-                margin-top: 0;
-                border-bottom: 2px solid #667eea;
-                padding-bottom: 10px;
-            }}
-            .issue-list, .fix-list {{
-                list-style: none;
-                padding: 0;
-            }}
-            .issue-list li, .fix-list li {{
-                padding: 12px 15px;
-                margin: 8px 0;
-                border-radius: 5px;
-                border-left: 4px solid #dc3545;
-                background: #fff5f5;
-            }}
-            .fix-list li {{
-                border-left-color: #28a745;
-                background: #f0f8f4;
-            }}
-            .icon {{
-                margin-right: 8px;
-            }}
-            .empty-state {{
-                text-align: center;
-                color: #6c757d;
-                padding: 40px;
-                font-style: italic;
-            }}
-            .footer {{
-                text-align: center;
-                margin-top: 30px;
-                padding: 20px;
-                color: #6c757d;
-                font-size: 12px;
-            }}
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>📋 Style Validation Report</h1>
-            <span class="status-badge">{status}</span>
-            <div class="meta-info">
-                <div><strong>Document:</strong> {file_name}</div>
-                <div><strong>Validated:</strong> {datetime.now(timezone.utc).strftime('%d %B %Y at %H:%M:%S')} UTC</div>
-            </div>
-        </div>
-
-        <div class="summary">
-            <h2>Summary</h2>
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <div class="number">{len(issues)}</div>
-                    <div class="label">Issues Found</div>
-                </div>
-                <div class="summary-card">
-                    <div class="number">{len(fixes_applied)}</div>
-                    <div class="label">Auto-Fixed</div>
-                </div>
-                <div class="summary-card">
-                    <div class="number">{unfixed_issues}</div>
-                    <div class="label">Remaining Issues</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>✅ Fixes Applied ({len(fixes_applied)})</h2>
-            {'<ul class="fix-list">' + ''.join(f'<li><span class="icon">✓</span>{fix}</li>' for fix in fixes_applied) + '</ul>' if fixes_applied else '<div class="empty-state">No fixes were applied</div>'}
-        </div>
-
-        <div class="section">
-            <h2>⚠️ Issues Detected ({len(issues)})</h2>
-            {'<ul class="issue-list">' + ''.join(f'<li><span class="icon">⚠</span>{issue}</li>' for issue in issues) + '</ul>' if issues else '<div class="empty-state">No issues detected</div>'}
-        </div>
-
-        <div class="footer">
-            <p>Generated by Mace Style Validator | Control Centre Writing Style Guide</p>
-            <p>Powered by Azure Functions & Claude AI</p>
-        </div>
-    </body>
-    </html>
+    Args:
+        file_name: Name of the validated document.
+        issues: List of dicts with keys: rule_name, rule_type, description, location, priority.
+        fixes_applied: List of dicts with keys: rule_name, rule_type, found_value, fixed_value, location.
     """
+    # Separate remaining issues (items in issues that were NOT fixed)
+    remaining_issues = [i for i in issues if isinstance(i, dict)]
+    total_issues_found = len(remaining_issues) + len(fixes_applied)
+    status = "Passed" if len(remaining_issues) == 0 else "Failed"
+    status_color = "#28a745" if status == "Passed" else "#dc3545"
+    validation_time = datetime.now(timezone.utc).strftime('%d %B %Y at %H:%M:%S UTC')
+
+    # Build fixes table rows
+    fixes_rows = ''
+    for fix in fixes_applied:
+        if isinstance(fix, dict):
+            fixes_rows += f"""<tr>
+                <td>{_escape_html(fix.get('rule_name', ''))}</td>
+                <td><span class="rule-type-badge">{_escape_html(fix.get('rule_type', ''))}</span></td>
+                <td>{_escape_html(fix.get('found_value', ''))}</td>
+                <td>{_escape_html(fix.get('fixed_value', ''))}</td>
+                <td>{_escape_html(fix.get('location', ''))}</td>
+            </tr>"""
+        else:
+            fixes_rows += f"""<tr>
+                <td colspan="5">{_escape_html(str(fix))}</td>
+            </tr>"""
+
+    # Build remaining issues table rows
+    issues_rows = ''
+    for issue in remaining_issues:
+        priority = issue.get('priority', 999)
+        priority_label = 'High' if priority <= 3 else ('Medium' if priority <= 6 else 'Low')
+        priority_color = '#dc3545' if priority <= 3 else ('#f0ad4e' if priority <= 6 else '#6c757d')
+        issues_rows += f"""<tr>
+            <td>{_escape_html(issue.get('rule_name', ''))}</td>
+            <td><span class="rule-type-badge">{_escape_html(issue.get('rule_type', ''))}</span></td>
+            <td>{_escape_html(issue.get('description', ''))}</td>
+            <td>{_escape_html(issue.get('location', ''))}</td>
+            <td><span style="color:{priority_color};font-weight:bold;">{priority_label}</span></td>
+        </tr>"""
+
+    # Build the fixes section
+    if fixes_applied:
+        fixes_section = f"""<div class="section">
+            <h2>Changes Made ({len(fixes_applied)})</h2>
+            <table>
+                <thead><tr>
+                    <th>Rule Name</th><th>Rule Type</th><th>What Was Found</th><th>What It Was Changed To</th><th>Location</th>
+                </tr></thead>
+                <tbody>{fixes_rows}</tbody>
+            </table>
+        </div>"""
+    else:
+        fixes_section = ''
+
+    # Build the remaining issues section
+    if remaining_issues:
+        issues_section = f"""<div class="section">
+            <h2>Remaining Issues ({len(remaining_issues)})</h2>
+            <table>
+                <thead><tr>
+                    <th>Rule Name</th><th>Rule Type</th><th>Issue Description</th><th>Location</th><th>Priority</th>
+                </tr></thead>
+                <tbody>{issues_rows}</tbody>
+            </table>
+        </div>"""
+    else:
+        issues_section = ''
+
+    # No-issues confirmation
+    if total_issues_found == 0:
+        no_issues_section = """<div class="section passed-section">
+            <h2>All Clear</h2>
+            <p>This document fully complies with the Mace Control Centre Writing Style Guide. No issues were found.</p>
+        </div>"""
+    else:
+        no_issues_section = ''
+
+    report_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validation Report - {_escape_html(file_name)}</title>
+    <style>
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+        body {{
+            font-family: Arial, Helvetica, sans-serif;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+            background: #f4f6f9;
+            color: #333;
+            line-height: 1.5;
+        }}
+        .header {{
+            background: linear-gradient(135deg, #1F4E79 0%, #1671CB 100%);
+            color: #fff;
+            padding: 32px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }}
+        .header h1 {{
+            font-size: 22px;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }}
+        .status-badge {{
+            display: inline-block;
+            padding: 6px 18px;
+            background: {status_color};
+            color: #fff;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .meta-info {{
+            margin-top: 14px;
+            font-size: 13px;
+            opacity: 0.92;
+        }}
+        .meta-info div {{ margin-bottom: 3px; }}
+        .summary {{
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }}
+        .summary h2 {{
+            font-size: 16px;
+            color: #1F4E79;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #1F4E79;
+        }}
+        .summary-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }}
+        .summary-card {{
+            background: #f4f6f9;
+            padding: 18px;
+            border-radius: 6px;
+            text-align: center;
+            border-left: 4px solid #1F4E79;
+        }}
+        .summary-card .number {{
+            font-size: 32px;
+            font-weight: 700;
+            color: #1F4E79;
+            margin-bottom: 4px;
+        }}
+        .summary-card .label {{
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .section {{
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }}
+        .section h2 {{
+            font-size: 16px;
+            color: #1F4E79;
+            margin-top: 0;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #1F4E79;
+        }}
+        .passed-section {{
+            border-left: 4px solid #28a745;
+        }}
+        .passed-section h2 {{
+            color: #28a745;
+            border-bottom-color: #28a745;
+        }}
+        .passed-section p {{
+            color: #555;
+            padding: 20px 0;
+            text-align: center;
+            font-size: 15px;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }}
+        thead th {{
+            background: #1F4E79;
+            color: #fff;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }}
+        thead th:first-child {{ border-radius: 4px 0 0 0; }}
+        thead th:last-child {{ border-radius: 0 4px 0 0; }}
+        tbody td {{
+            padding: 10px 12px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+        }}
+        tbody tr:hover {{ background: #f8f9fb; }}
+        tbody tr:last-child td {{ border-bottom: none; }}
+        .rule-type-badge {{
+            display: inline-block;
+            padding: 2px 8px;
+            background: #e8f0fe;
+            color: #1671CB;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }}
+        .footer {{
+            text-align: center;
+            margin-top: 28px;
+            padding: 16px;
+            color: #999;
+            font-size: 11px;
+        }}
+        .footer span {{ color: #1F4E79; font-weight: 600; }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Mace Style Validation Report</h1>
+        <span class="status-badge">{status}</span>
+        <div class="meta-info">
+            <div><strong>Document:</strong> {_escape_html(file_name)}</div>
+            <div><strong>Validated:</strong> {validation_time}</div>
+        </div>
+    </div>
+
+    <div class="summary">
+        <h2>Summary</h2>
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="number">{total_issues_found}</div>
+                <div class="label">Issues Found</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{len(fixes_applied)}</div>
+                <div class="label">Auto-Fixed</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">{len(remaining_issues)}</div>
+                <div class="label">Remaining</div>
+            </div>
+        </div>
+    </div>
+
+    {no_issues_section}
+    {fixes_section}
+    {issues_section}
+
+    <div class="footer">
+        <span>Mace Style Validator</span> &middot; Control Centre Writing Style Guide<br>
+        Powered by Azure Functions &amp; Claude AI
+    </div>
+</body>
+</html>"""
     return report_html
 
 # ============================================
@@ -1207,15 +1382,33 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                                 run.text = ""
                                         para_index += 1
 
-                                issues.append(f"Found {changes_count} style violations")
-                                fixes_applied.append(f"Applied {changes_count} style corrections (British English, contractions, symbols, etc.)")
+                                issues.append({
+                                    'rule_name': 'AI Style Corrections',
+                                    'rule_type': 'AI',
+                                    'description': f"Found {changes_count} style violations",
+                                    'location': 'Document-wide',
+                                    'priority': 1
+                                })
+                                fixes_applied.append({
+                                    'rule_name': 'AI Style Corrections',
+                                    'rule_type': 'AI',
+                                    'found_value': f'{changes_count} style violations',
+                                    'fixed_value': 'British English, contractions, symbols corrected',
+                                    'location': 'Document-wide'
+                                })
                                 logging.info(f"Claude style corrections: {changes_count}")
                             else:
                                 logging.info("No spelling changes needed")
 
                     except Exception as e:
                         logging.error(f"Claude API error: {str(e)}")
-                        issues.append(f"AI style validation failed: {str(e)}")
+                        issues.append({
+                            'rule_name': 'AI Style Validation',
+                            'rule_type': 'AI',
+                            'description': f"AI style validation failed: {str(e)}",
+                            'location': 'N/A',
+                            'priority': 1
+                        })
             else:
                 logging.warning("ANTHROPIC_API_KEY not set - skipping AI style validation")
 
@@ -1231,8 +1424,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                             font_changes += 1
 
             if font_changes > 0:
-                issues.append(f"Found {font_changes} text runs with incorrect font")
-                fixes_applied.append(f"Fixed {font_changes} text runs to {expected_font}")
+                fixes_applied.append({
+                    'rule_name': 'All Text Font',
+                    'rule_type': 'Font',
+                    'found_value': f'{font_changes} runs with wrong font',
+                    'fixed_value': expected_font,
+                    'location': f'Document-wide ({font_changes} runs)'
+                })
                 logging.info(f"Font changes: {font_changes}")
 
             logging.info(f"v3.3 TOTAL: {len(issues)} issues, {len(fixes_applied)} fixes")
