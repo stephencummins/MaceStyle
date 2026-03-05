@@ -2,7 +2,7 @@
 
 **Prepared for:** Azure Global Admin
 **Date:** March 2026
-**Contact:** Stephen Cummins (stephencummins@gmail.com)
+**Contact:** Stephen Cummins (stephen.cummins@macegroup.com)
 
 ---
 
@@ -119,4 +119,4 @@ For the Azure Admin:
 - [ ] Create SharePoint site `/sites/StyleValidation` (or confirm an existing site to use)
 - [ ] Grant the App Registration access to the SharePoint site (if site-scoped permissions are preferred over tenant-wide)
 
-Everything else (function deployment, SharePoint list setup, Power Automate flow, rule configuration) will be handled by the development team.
+Everything else (function deployment, SharePoint list setup, Power Automate flow, rule configuration) will be handled by me (Stephen Cummins).
