@@ -3,6 +3,7 @@ import logging
 import json
 import os
 from io import BytesIO
+from urllib.parse import quote
 from datetime import datetime, timezone
 from docx import Document
 from docx.shared import Pt, RGBColor
@@ -214,9 +215,10 @@ def upload_file(token, file_stream, target_path):
 
     logging.info(f"Using drive-relative path for upload: {drive_relative_path}")
 
-    # Upload file
+    # Upload file - URL-encode the path (preserve slashes) to handle special chars like & in filenames
     file_stream.seek(0)
-    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{drive_relative_path}:/content"
+    encoded_path = quote(drive_relative_path, safe='/')
+    upload_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/root:{encoded_path}:/content"
     upload_response = requests.put(upload_url, headers=headers, data=file_stream.read())
     upload_response.raise_for_status()
 
@@ -248,7 +250,11 @@ def update_validation_status(token, item_id, status, report_url, list_name="800c
         update_data["ValidationReport"] = report_url
 
     update_response = requests.patch(update_url, headers=headers, json=update_data)
-    update_response.raise_for_status()
+    if update_response.status_code >= 400:
+        logging.warning(f"Could not update validation status (HTTP {update_response.status_code}): {update_response.text}. "
+                        f"Check that ValidationStatus, LastValidated, and ValidationReport columns exist on the document library.")
+    else:
+        logging.info(f"Validation status updated for item {item_id}")
 
 # ============================================
 # VALIDATION LOGIC - WORD
@@ -1294,9 +1300,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         token = get_graph_token()
         logging.info('Token acquired successfully')
 
-        # 3. Update status to "Validating..."
+        # 3. Update status to "Validating..." (non-fatal if columns don't exist yet)
         logging.info('Step 3: Updating validation status...')
-        update_validation_status(token, item_id, "Validating...", None)
+        try:
+            update_validation_status(token, item_id, "Validating...", None)
+        except Exception as status_err:
+            logging.warning(f"Could not set initial status: {status_err}")
 
         # 4. Fetch validation rules
         logging.info('Step 4: Fetching validation rules...')
@@ -1549,7 +1558,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         unfixed_issues = len(result['issues']) - len(result['fixes_applied'])
         final_status = "Passed" if unfixed_issues == 0 else "Failed"
         logging.info(f"Issues: {len(result['issues'])}, Fixes: {len(result['fixes_applied'])}, Unfixed: {unfixed_issues}")
-        update_validation_status(token, item_id, final_status, report_url)
+        try:
+            update_validation_status(token, item_id, final_status, report_url)
+        except Exception as status_err:
+            logging.warning(f"Could not set final status: {status_err}")
 
         # 10. Return response with fixed file content
         logging.info(f'=== VALIDATION COMPLETE: {final_status} ===')
