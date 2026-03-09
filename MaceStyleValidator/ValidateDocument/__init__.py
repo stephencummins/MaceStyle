@@ -1496,7 +1496,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # Always upload report to SharePoint
         logging.info('Uploading report to SharePoint...')
         report_stream = BytesIO(report_html.encode('utf-8'))
-        report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.html"
+        report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.aspx"
         if file_url:
             report_folder = os.path.dirname(file_url)
             report_path = f"{report_folder}/{report_filename}" if report_folder else f"/{report_filename}"
@@ -1532,15 +1532,38 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             logging.info(f"✓ Validation result saved: {validation_result_info['list_item_url']}")
 
             # 8.6. Update document metadata with link to validation result
-            if file_url and validation_result_info:
+            if validation_result_info:
                 logging.info('Step 8.6: Updating document with validation result link...')
                 try:
-                    update_success = update_document_metadata(
-                        token=token,
-                        site_id=site_id,
-                        file_url=file_url,
-                        validation_result_url=validation_result_info['list_item_url']
-                    )
+                    if file_url:
+                        update_success = update_document_metadata(
+                            token=token,
+                            site_id=site_id,
+                            file_url=file_url,
+                            validation_result_url=validation_result_info['list_item_url']
+                        )
+                    elif item_id:
+                        # Use item_id directly when file_url not available
+                        list_id = "800c67b1-816d-43f6-ac7d-d21bca8d140f"
+                        update_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items/{item_id}/fields"
+                        headers = {
+                            "Authorization": f"Bearer {token}",
+                            "Content-Type": "application/json"
+                        }
+                        update_data = {
+                            "ValidationResultLink": json.dumps({
+                                "Description": "View Validation Result",
+                                "Url": validation_result_info['list_item_url']
+                            })
+                        }
+                        resp = requests.patch(update_url, headers=headers, json=update_data)
+                        update_success = resp.status_code < 400
+                        if not update_success:
+                            logging.warning(f"Failed to update ValidationResultLink via item_id: {resp.status_code} {resp.text}")
+                    else:
+                        update_success = False
+                        logging.warning("No file_url or item_id available to update metadata")
+
                     if update_success:
                         logging.info("✓ Document metadata updated with validation result link")
                     else:
