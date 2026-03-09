@@ -224,7 +224,7 @@ def upload_file(token, file_stream, target_path):
     logging.info(f"File uploaded successfully: {web_url}")
     return web_url
 
-def update_validation_status(token, item_id, status, report_url, list_name="Documents"):
+def update_validation_status(token, item_id, status, report_url, list_name="800c67b1-816d-43f6-ac7d-d21bca8d140f"):
     """Update ValidationStatus column in document library using Graph API"""
     site_info = get_site_info()
     headers = {
@@ -238,7 +238,7 @@ def update_validation_status(token, item_id, status, report_url, list_name="Docu
     site_response.raise_for_status()
     site_id = site_response.json()["id"]
 
-    # Update list item
+    # Update list item (use list GUID for reliability)
     update_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_name}/items/{item_id}/fields"
     update_data = {
         "ValidationStatus": status,
