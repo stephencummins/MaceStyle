@@ -7,9 +7,12 @@ CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 CLAUDE_MAX_TOKENS = 8192
 CLAUDE_TEMPERATURE = 0.3
 
-# SharePoint list IDs (structural identifiers, not secrets)
+# SharePoint list IDs - override via env vars for different tenants
 DOC_LIBRARY_LIST_ID = os.environ.get(
     "SHAREPOINT_DOC_LIBRARY_ID", "800c67b1-816d-43f6-ac7d-d21bca8d140f"
+)
+VALIDATION_RESULTS_LIST_ID = os.environ.get(
+    "SHAREPOINT_VALIDATION_RESULTS_ID", "d4f4cc72-7f68-4009-a1eb-e86d9e67a4dd"
 )
 
 

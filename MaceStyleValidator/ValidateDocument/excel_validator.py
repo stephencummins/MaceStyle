@@ -64,26 +64,17 @@ def validate_excel_document(file_stream, rules):
                 combined_text = "\n\n".join([cd['text'] for cd in cell_data])
                 result = call_claude(ai_rules, combined_text)
 
-                if result and result['changes_made'] > 0 and result['corrected_text']:
-                    # Write corrections back to cells
-                    corrected_parts = result['corrected_text'].split('\n\n')
-                    cells_updated = 0
-
-                    for idx, cd in enumerate(cell_data):
-                        if idx < len(corrected_parts):
-                            new_text = corrected_parts[idx].strip()
-                            if new_text != cd['text'].strip():
-                                cd['cell'].value = new_text
-                                cells_updated += 1
-
-                    fixes_applied.append({
+                if result and result['changes_made'] > 0:
+                    # Report AI issues but don't apply text changes to Excel
+                    # (splitting corrected text back to cells is unreliable)
+                    issues.append({
                         'rule_name': 'AI Style Corrections',
                         'rule_type': 'AI',
-                        'found_value': f'{result["changes_made"]} style violations',
-                        'fixed_value': f'Corrected text in {cells_updated} cells',
-                        'location': 'Workbook-wide'
+                        'description': f"Found {result['changes_made']} style violations requiring manual review",
+                        'location': 'Workbook-wide',
+                        'priority': 3
                     })
-                    logging.info(f"Claude corrections: {result['changes_made']} changes in {cells_updated} cells")
+                    logging.info(f"Claude found {result['changes_made']} Excel style issues (report only, no auto-fix)")
 
         except Exception as e:
             logging.error(f"Claude validation failed for Excel: {e}")

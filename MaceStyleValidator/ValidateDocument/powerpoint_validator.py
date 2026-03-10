@@ -30,26 +30,17 @@ def validate_powerpoint_document(file_stream, rules):
             combined_text = "\n\n".join([tr['text'] for tr in text_refs if tr['text'].strip()])
             if combined_text.strip():
                 result = call_claude(ai_rules, combined_text)
-                if result and result['changes_made'] > 0 and result['corrected_text']:
-                    corrected_parts = result['corrected_text'].split('\n\n')
-                    # Map corrected text back to runs
-                    text_only = [tr for tr in text_refs if tr['text'].strip()]
-                    runs_updated = 0
-                    for idx, tr in enumerate(text_only):
-                        if idx < len(corrected_parts):
-                            new_text = corrected_parts[idx].strip()
-                            if new_text != tr['text'].strip():
-                                tr['run'].text = new_text
-                                runs_updated += 1
-
-                    fixes_applied.append({
+                if result and result['changes_made'] > 0:
+                    # Report AI issues but don't apply text changes to PowerPoint
+                    # (splitting corrected text back to runs is unreliable)
+                    issues.append({
                         'rule_name': 'AI Style Corrections',
                         'rule_type': 'AI',
-                        'found_value': f'{result["changes_made"]} style violations',
-                        'fixed_value': f'Corrected text in {runs_updated} text runs',
-                        'location': 'Presentation-wide'
+                        'description': f"Found {result['changes_made']} style violations requiring manual review",
+                        'location': 'Presentation-wide',
+                        'priority': 3
                     })
-                    logging.info(f"Claude corrections: {result['changes_made']} changes in {runs_updated} runs")
+                    logging.info(f"Claude found {result['changes_made']} PowerPoint style issues (report only, no auto-fix)")
         except Exception as e:
             logging.error(f"Claude validation failed for PowerPoint: {e}")
             issues.append({

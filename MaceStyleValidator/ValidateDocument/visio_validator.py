@@ -42,24 +42,18 @@ def validate_visio_document(file_stream, rules):
             combined_text = "\n\n".join([st['text'] for st in shape_texts if st['text'].strip()])
             if combined_text.strip():
                 result = call_claude(ai_rules, combined_text)
-                if result and result['changes_made'] > 0 and result['corrected_text']:
-                    corrected_parts = result['corrected_text'].split('\n\n')
-                    shapes_updated = 0
-                    for idx, shape_data in enumerate(shape_texts):
-                        if idx < len(corrected_parts):
-                            new_text = corrected_parts[idx].strip()
-                            if new_text != shape_data['text'].strip():
-                                shape_data['shape'].text = new_text
-                                shapes_updated += 1
-
-                    fixes_applied.append({
+                if result and result['changes_made'] > 0:
+                    # Report AI issues but don't apply text changes to Visio
+                    # (splitting corrected text back to shapes is unreliable
+                    #  and can corrupt the document)
+                    issues.append({
                         'rule_name': 'AI Style Corrections',
                         'rule_type': 'AI',
-                        'found_value': f'{result["changes_made"]} style violations',
-                        'fixed_value': f'Corrected text in {shapes_updated} shapes',
-                        'location': 'Diagram-wide'
+                        'description': f"Found {result['changes_made']} style violations requiring manual review",
+                        'location': 'Document-wide',
+                        'priority': 3
                     })
-                    logging.info(f"Claude corrections: {result['changes_made']} changes in {shapes_updated} shapes")
+                    logging.info(f"Claude found {result['changes_made']} Visio style issues (report only, no auto-fix)")
         except Exception as e:
             logging.error(f"Claude validation failed for Visio: {e}")
             issues.append({

@@ -2,7 +2,8 @@
 import sys
 import json
 from io import BytesIO
-from ValidateDocument import validate_word_document, generate_report
+from ValidateDocument.word_validator import validate_word_document
+from ValidateDocument.report import generate_report
 from ValidateDocument.test_helpers import create_test_word_doc, create_mock_rules
 
 def test_validation():

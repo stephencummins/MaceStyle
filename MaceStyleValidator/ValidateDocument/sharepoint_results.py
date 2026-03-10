@@ -32,8 +32,9 @@ def save_validation_result(token, site_id, filename, issues_count, fixes_count, 
     }
 
     # Create list item
-    # Use list ID for reliability (found via inspect_validation_results.py)
-    list_id = "d4f4cc72-7f68-4009-a1eb-e86d9e67a4dd"
+    # Use list ID for reliability (configurable via SHAREPOINT_VALIDATION_RESULTS_ID)
+    from .config import VALIDATION_RESULTS_LIST_ID
+    list_id = VALIDATION_RESULTS_LIST_ID
     list_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/{list_id}/items"
 
     item_data = {
@@ -72,7 +73,8 @@ def save_validation_result(token, site_id, filename, issues_count, fixes_count, 
         response.raise_for_status()
         logging.info(f"✓ Updated ReportLink field")
 
-    list_item_url = f"https://0rxf2.sharepoint.com/sites/StyleValidation/Lists/Validation%20Results/DispForm.aspx?ID={item_id}"
+    site_url = os.environ.get("SHAREPOINT_SITE_URL", "")
+    list_item_url = f"{site_url}/Lists/Validation%20Results/DispForm.aspx?ID={item_id}"
     logging.info(f"✓ Validation result saved: {list_item_url}")
 
     return {

@@ -18,10 +18,31 @@ def generate_report(file_name, issues, fixes_applied):
         fixes_applied: List of dicts with keys: rule_name, rule_type, found_value, fixed_value, location.
     """
     remaining_issues = [i for i in issues if isinstance(i, dict)]
-    total_issues_found = len(remaining_issues) + len(fixes_applied)
-    status = "Passed" if len(remaining_issues) == 0 else "Failed"
-    status_color = "#28a745" if status == "Passed" else "#dc3545"
+    remaining_count = len(remaining_issues)
+    fixes_count = len(fixes_applied)
+    total_issues_found = remaining_count + fixes_count
+
+    if remaining_count == 0:
+        status = "Passed"
+        status_color = "#28a745"
+    elif fixes_count > 0:
+        status = "Review Required"
+        status_color = "#f0ad4e"
+    else:
+        status = "Failed"
+        status_color = "#dc3545"
+
     validation_time = datetime.now(timezone.utc).strftime('%d %B %Y at %H:%M:%S UTC')
+
+    # Build description text
+    if fixes_count > 0 and remaining_count == 0:
+        description = f"{fixes_count} issue{'s' if fixes_count != 1 else ''} found and auto-fixed. Document is compliant."
+    elif fixes_count > 0:
+        description = f"{fixes_count} issue{'s' if fixes_count != 1 else ''} auto-fixed, {remaining_count} remaining for manual review."
+    elif total_issues_found > 0:
+        description = f"{total_issues_found} issue{'s' if total_issues_found != 1 else ''} found. Manual correction required."
+    else:
+        description = "No issues found. Document fully complies with the Mace Writing Style Guide."
 
     # Build fixes table rows
     fixes_rows = ''
@@ -66,9 +87,10 @@ def generate_report(file_name, issues, fixes_applied):
     else:
         fixes_section = ''
 
+    issues_class = "section review-section" if status == "Review Required" else "section"
     if remaining_issues:
-        issues_section = f"""<div class="section">
-            <h2>Remaining Issues ({len(remaining_issues)})</h2>
+        issues_section = f"""<div class="{issues_class}">
+            <h2>Remaining Issues ({remaining_count})</h2>
             <table>
                 <thead><tr>
                     <th>Rule Name</th><th>Rule Type</th><th>Issue Description</th><th>Location</th><th>Priority</th>
@@ -199,6 +221,13 @@ def generate_report(file_name, issues, fixes_applied):
             text-align: center;
             font-size: 15px;
         }}
+        .review-section {{
+            border-left: 4px solid #f0ad4e;
+        }}
+        .review-section h2 {{
+            color: #e69500;
+            border-bottom-color: #f0ad4e;
+        }}
         table {{
             width: 100%;
             border-collapse: collapse;
@@ -247,7 +276,8 @@ def generate_report(file_name, issues, fixes_applied):
         <h1>Mace Style Validation Report</h1>
         <span class="status-badge">{status}</span>
         <div class="meta-info">
-            <div><strong>Document:</strong> {_escape_html(file_name)}</div>
+            <div style="margin-top:8px;font-size:14px;opacity:1;">{description}</div>
+            <div style="margin-top:10px;"><strong>Document:</strong> {_escape_html(file_name)}</div>
             <div><strong>Validated:</strong> {validation_time}</div>
         </div>
     </div>
@@ -263,8 +293,8 @@ def generate_report(file_name, issues, fixes_applied):
                 <div class="number">{len(fixes_applied)}</div>
                 <div class="label">Auto-Fixed</div>
             </div>
-            <div class="summary-card">
-                <div class="number">{len(remaining_issues)}</div>
+            <div class="summary-card" style="border-left-color: {'#f0ad4e' if remaining_count > 0 and fixes_count > 0 else '#dc3545' if remaining_count > 0 else '#28a745'};">
+                <div class="number" style="color: {'#f0ad4e' if remaining_count > 0 and fixes_count > 0 else '#dc3545' if remaining_count > 0 else '#28a745'};">{remaining_count}</div>
                 <div class="label">Remaining</div>
             </div>
         </div>

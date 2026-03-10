@@ -66,7 +66,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # 6. Validate based on file type
         logging.info(f'Validating {file_extension} document...')
 
-        if file_extension in ['.docx', '.doc']:
+        if file_extension in ['.docx', '.doc', '.docm', '.dotx', '.dotm']:
             result = validate_word_document(file_stream, rules)
             fixed_stream = BytesIO()
             result['document'].save(fixed_stream)
@@ -81,13 +81,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             fixed_stream = BytesIO(open(tmp_out_path, 'rb').read())
             os.unlink(tmp_out_path)
 
-        elif file_extension in ['.xlsx', '.xls']:
+        elif file_extension in ['.xlsx', '.xls', '.xlsm']:
             result = validate_excel_document(file_stream, rules)
             fixed_stream = BytesIO()
             result['document'].save(fixed_stream)
             fixed_stream.seek(0)
 
-        elif file_extension in ['.pptx', '.ppt']:
+        elif file_extension in ['.pptx', '.ppt', '.pptm', '.potx', '.potm']:
             result = validate_powerpoint_document(file_stream, rules)
             fixed_stream = BytesIO()
             result['document'].save(fixed_stream)
@@ -132,7 +132,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         try:
             site_id = get_site_id(token)
             remaining = [i for i in result['issues'] if isinstance(i, dict)]
-            result_status = "Passed" if len(remaining) == 0 else "Failed"
+            if len(remaining) == 0:
+                result_status = "Passed"
+            elif len(result['fixes_applied']) > 0:
+                result_status = "Review Required"
+            else:
+                result_status = "Failed"
 
             validation_result_info = save_validation_result(
                 token=token,
@@ -157,7 +162,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         # 10. Update final validation status
         remaining = [i for i in result['issues'] if isinstance(i, dict)]
-        final_status = "Passed" if len(remaining) == 0 else "Failed"
+        if len(remaining) == 0:
+            final_status = "Passed"
+        elif len(result['fixes_applied']) > 0:
+            final_status = "Review Required"
+        else:
+            final_status = "Failed"
         try:
             update_validation_status(token, item_id, final_status, report_url)
         except Exception as e:
@@ -166,10 +176,23 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # 11. Return response
         logging.info(f'=== VALIDATION COMPLETE: {final_status} ===')
 
+        issues_count = len(result['issues'])
+        fixes_count = len(result['fixes_applied'])
+        remaining_count = len(remaining)
+        if fixes_count > 0 and remaining_count == 0:
+            description = f"{final_status} — {fixes_count} issue{'s' if fixes_count != 1 else ''} auto-fixed"
+        elif fixes_count > 0:
+            description = f"{final_status} — {fixes_count} fixed, {remaining_count} remaining"
+        elif issues_count > 0:
+            description = f"{final_status} — {issues_count} issue{'s' if issues_count != 1 else ''} found"
+        else:
+            description = f"{final_status} — no issues found"
+
         response_data = {
             "status": final_status,
-            "issuesFound": len(result['issues']),
-            "issuesFixed": len(result['fixes_applied']),
+            "description": description,
+            "issuesFound": issues_count,
+            "issuesFixed": fixes_count,
             "reportUrl": report_url,
             "validationResultUrl": validation_result_info['list_item_url'] if validation_result_info else None,
             "reportLink": {

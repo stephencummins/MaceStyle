@@ -4,16 +4,11 @@ This directly uses the validation modules to test the full workflow
 """
 
 import sys
-sys.path.append('ValidateDocument')
 
-from ValidateDocument import (
-    get_graph_token,
-    download_file,
-    fetch_validation_rules,
-    validate_word_document,
-    generate_report,
-    upload_file
-)
+from ValidateDocument.config import get_graph_token
+from ValidateDocument.sharepoint_client import download_file, fetch_validation_rules, upload_file
+from ValidateDocument.word_validator import validate_word_document
+from ValidateDocument.report import generate_report
 from io import BytesIO
 
 def main():
