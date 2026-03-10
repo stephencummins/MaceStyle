@@ -6,19 +6,26 @@ Automated document validation system enforcing the Mace Control Centre Writing S
 
 - **Azure Function** (Python 3.11) triggered via Power Automate on SharePoint document upload
 - **SharePoint Online** stores documents, style rules (`Style Rules` list), and validation results (`Validation Results` list)
-- **Claude AI** (Haiku) for intelligent language corrections (rules with `UseAI: Yes`)
+- **Claude AI** (Haiku 4.5) for intelligent language corrections (rules with `UseAI: Yes`)
 - **Microsoft Graph API** for SharePoint integration, authenticated via Azure AD (MSAL)
 
 ## Project Structure
 
 ```
 MaceStyleValidator/
-  function_app.py              # Azure Function entry point (routes: ValidateDocument, TestSharePoint)
+  function_app.py              # Azure Function entry point (routes: ValidateDocument, TestSharePoint, ListDocuments)
   ValidateDocument/
-    __init__.py                # Main validation logic (large - ~67KB)
-    claude_validator.py        # Claude AI validation integration
-    enhanced_validators.py     # Additional validation rules
-    sharepoint_results.py      # SharePoint results upload
+    __init__.py                # Main routing and orchestration
+    config.py                  # Auth, constants, Claude model config
+    ai_client.py               # Centralised Claude API client
+    sharepoint_client.py       # SharePoint/Graph API operations
+    report.py                  # HTML validation report generation
+    word_validator.py          # Word (.docx) validation
+    visio_validator.py         # Visio (.vsdx) validation
+    excel_validator.py         # Excel (.xlsx) validation
+    powerpoint_validator.py    # PowerPoint (.pptx) validation
+    enhanced_validators.py     # Hard-coded text rules (spelling, contractions, symbols)
+    sharepoint_results.py      # Validation results list operations
     test_helpers.py            # Test utilities
   populate_style_rules.py      # Seed style rules to SharePoint
   add_process_map_rules.py     # Add Visio process map rules
@@ -29,11 +36,12 @@ docs/                          # Architecture, user guide, config/setup docs
 test_files/                    # Test documents and guides
 ```
 
-## Key Files
+## Supported Formats
 
-- `ValidateDocument/__init__.py` - Core validation engine. Handles Word (.docx) and Visio (.vsdx) files. Fetches rules from SharePoint, applies fixes, generates HTML reports, uploads corrected files.
-- `ValidateDocument/claude_validator.py` - Sends text to Claude API for style corrections.
-- `populate_style_rules.py` - Populates the SharePoint `Style Rules` list with all validation rules.
+- **Word** (.docx, .doc) - Full validation + auto-fix + corrected file upload
+- **Visio** (.vsdx, .vsd) - Full validation + auto-fix (text, fonts, colours, sizes, positions, page dims)
+- **Excel** (.xlsx, .xls) - Full validation + auto-fix (text corrections written back to cells)
+- **PowerPoint** (.pptx, .ppt) - Full validation + auto-fix (text, fonts)
 
 ## Validation Rules
 
@@ -59,6 +67,7 @@ python3 test_local.py         # Run local tests
 ## Notes
 
 - `local.settings.json` and `.env` are gitignored - never commit secrets
+- All SharePoint credentials must be set via environment variables (no hardcoded defaults)
+- Claude model and settings configured in `config.py` (currently Haiku 4.5, 8192 max tokens)
 - Visio font detection uses numeric IDs (font 0 = Arial)
 - Large files (>100 pages) may timeout on Azure Functions consumption plan
-- `ValidateDocument/__init__.py` is the largest file and contains most business logic - consider splitting if it grows further
