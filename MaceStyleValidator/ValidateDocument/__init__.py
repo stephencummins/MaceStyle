@@ -2,6 +2,7 @@ import azure.functions as func
 import logging
 import json
 import os
+import re
 from io import BytesIO
 from urllib.parse import quote
 from datetime import datetime, timezone
@@ -96,13 +97,13 @@ def fetch_validation_rules(token):
         fields = item.get("fields", {})
         rules.append({
             'title': fields.get('Title'),
-            'rule_type': fields.get('RuleType'),
-            'doc_type': fields.get('DocumentType'),
-            'check_value': fields.get('CheckValue'),
-            'expected_value': fields.get('ExpectedValue'),
-            'auto_fix': fields.get('AutoFix'),
-            'use_ai': fields.get('UseAI', False),  # Add UseAI field
-            'priority': fields.get('Priority', 999)
+            'rule_type': fields.get('RuleType') or fields.get('field_1'),
+            'doc_type': fields.get('DocumentType') or fields.get('field_2'),
+            'check_value': fields.get('CheckValue') or fields.get('field_3'),
+            'expected_value': fields.get('ExpectedValue') or fields.get('field_4'),
+            'auto_fix': fields.get('AutoFix') if fields.get('AutoFix') is not None else fields.get('field_5'),
+            'use_ai': fields.get('UseAI') if fields.get('UseAI') is not None else fields.get('field_7', False),
+            'priority': fields.get('Priority') or fields.get('field_6', 999)
         })
 
     rules.sort(key=lambda x: x['priority'])
@@ -293,7 +294,7 @@ def validate_word_document(file_stream, rules):
     fixes_applied = []
 
     # Filter rules for Word documents
-    word_rules = [r for r in rules if r['doc_type'] == 'Word']
+    word_rules = [r for r in rules if r['doc_type'] in ['Word', 'Both', 'All']]
     logging.info(f"Applying {len(word_rules)} Word validation rules")
 
     # Split rules into AI-enabled and hard-coded
@@ -482,8 +483,15 @@ def check_word_colors(doc, rule):
 # ============================================
 def validate_visio_document(file_stream, rules):
     """Validate Visio document against rules"""
+    import tempfile
     logging.info("Loading Visio document...")
-    visio = VisioFile(file_stream)
+
+    # VisioFile expects a filename, not a stream
+    with tempfile.NamedTemporaryFile(suffix='.vsdx', delete=False) as tmp:
+        tmp.write(file_stream.read())
+        tmp_path = tmp.name
+    file_stream.seek(0)
+    visio = VisioFile(tmp_path)
 
     page_count = len(visio.pages)
     logging.info(f"Visio document loaded. Pages: {page_count}")
@@ -492,7 +500,7 @@ def validate_visio_document(file_stream, rules):
     fixes_applied = []
 
     # Filter rules for Visio documents (including 'Both')
-    visio_rules = [r for r in rules if r['doc_type'] in ['Visio', 'Both']]
+    visio_rules = [r for r in rules if r['doc_type'] in ['Visio', 'Both', 'All']]
     logging.info(f"Applying {len(visio_rules)} Visio validation rules")
 
     # Split rules into AI-enabled and hard-coded
@@ -596,6 +604,12 @@ def validate_visio_document(file_stream, rules):
             fixes_applied.extend(result['fixes'])
 
     logging.info(f"Visio validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
+
+    # Clean up temp file
+    try:
+        os.unlink(tmp_path)
+    except Exception:
+        pass
 
     return {
         'document': visio,
@@ -976,6 +990,280 @@ def check_visio_page_dimensions(visio, rule):
 
     logging.info(f"Page dimensions check complete: {issue_count} issues, {fix_count} fixes")
     return {'issues': issues, 'fixes': fixes}
+
+# ============================================
+# VALIDATION LOGIC - EXCEL
+# ============================================
+def validate_excel_document(file_stream, rules):
+    """Validate Excel document against rules"""
+    from openpyxl import load_workbook
+    logging.info("Loading Excel document...")
+    wb = load_workbook(file_stream)
+    logging.info(f"Excel document loaded. Sheets: {len(wb.sheetnames)}")
+
+    issues = []
+    fixes_applied = []
+
+    # Filter rules for Excel documents (including 'Both')
+    excel_rules = [r for r in rules if r['doc_type'] in ['Excel', 'Both', 'All']]
+    logging.info(f"Applying {len(excel_rules)} Excel validation rules")
+
+    # Split rules into AI-enabled and hard-coded
+    ai_rules = [r for r in excel_rules if r.get('use_ai', False)]
+    hard_coded_rules = [r for r in excel_rules if not r.get('use_ai', False)]
+
+    logging.info(f"AI-enabled rules: {len(ai_rules)}, Hard-coded rules: {len(hard_coded_rules)}")
+
+    # Process AI-enabled rules
+    if ai_rules:
+        logging.info(f"Calling Claude AI for {len(ai_rules)} Excel rules...")
+        try:
+            # Extract all text from Excel cells
+            cell_texts = []
+            for sheet in wb.sheetnames:
+                ws = wb[sheet]
+                for row in ws.iter_rows():
+                    for cell in row:
+                        if cell.value and isinstance(cell.value, str) and cell.value.strip():
+                            cell_texts.append(cell.value)
+
+            combined_text = "\n\n".join(cell_texts)
+
+            if combined_text.strip():
+                api_key = os.environ.get("ANTHROPIC_API_KEY")
+                if api_key:
+                    client = Anthropic(api_key=api_key)
+                    prompt = build_dynamic_claude_prompt(ai_rules, combined_text)
+
+                    response = client.messages.create(
+                        model="claude-3-haiku-20240307",
+                        max_tokens=4096,
+                        temperature=0.3,
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+
+                    response_text = response.content[0].text
+                    json_start = response_text.find('{')
+                    json_end = response_text.rfind('}') + 1
+
+                    if json_start >= 0 and json_end > json_start:
+                        result_json = json.loads(response_text[json_start:json_end])
+                        changes_count = result_json.get('changes_made', 0)
+
+                        if changes_count > 0:
+                            issues.append({
+                                'rule_name': 'AI Style Corrections',
+                                'rule_type': 'AI',
+                                'description': f"Found {changes_count} style violations",
+                                'location': 'Workbook-wide',
+                                'priority': 1
+                            })
+                            logging.info(f"Claude found {changes_count} Excel style issues")
+
+        except Exception as e:
+            logging.error(f"Claude validation failed for Excel: {str(e)}")
+            issues.append({
+                'rule_name': 'AI Validation',
+                'rule_type': 'AI',
+                'description': f"AI validation failed: {str(e)}",
+                'location': 'N/A',
+                'priority': 1
+            })
+
+    # Process hard-coded rules
+    for idx, rule in enumerate(hard_coded_rules):
+        logging.info(f"Processing Excel rule {idx+1}/{len(hard_coded_rules)}: {rule.get('title', 'Unknown')}")
+
+        result = None
+        if rule['rule_type'] == 'Font':
+            result = check_excel_fonts(wb, rule)
+        elif rule['rule_type'] in ['Language', 'Grammar', 'Punctuation']:
+            result = check_excel_text(wb, rule)
+        else:
+            logging.info(f"Rule type '{rule['rule_type']}' not yet implemented for Excel")
+
+        if result:
+            for item in result.get('issues', []):
+                issues.append(_normalise_issue(item, rule))
+            for item in result.get('fixes', []):
+                fixes_applied.append(_normalise_fix(item, rule))
+
+    logging.info(f"Excel validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
+
+    return {
+        'document': wb,
+        'issues': issues,
+        'fixes_applied': fixes_applied
+    }
+
+
+def check_excel_fonts(wb, rule):
+    """Check and fix font issues in Excel workbook"""
+    from openpyxl.styles import Font
+    from copy import copy
+    issues = []
+    fixes = []
+    expected_font = rule['expected_value']
+
+    logging.info(f"Checking Excel fonts: {rule['check_value']} -> {expected_font}")
+
+    if rule['check_value'] == 'AllTextFont':
+        issue_count = 0
+        fix_count = 0
+
+        for sheet_name in wb.sheetnames:
+            ws = wb[sheet_name]
+            for row in ws.iter_rows():
+                for cell in row:
+                    if cell.value and isinstance(cell.value, str) and cell.value.strip():
+                        current_font = cell.font.name if cell.font else None
+
+                        if current_font is None or current_font != expected_font:
+                            issue_count += 1
+
+                            if rule['auto_fix']:
+                                # Copy existing font and change name
+                                new_font = copy(cell.font)
+                                cell.font = Font(
+                                    name=expected_font,
+                                    size=new_font.size,
+                                    bold=new_font.bold,
+                                    italic=new_font.italic,
+                                    underline=new_font.underline,
+                                    color=new_font.color
+                                )
+                                fix_count += 1
+
+        if issue_count > 0 and not rule['auto_fix']:
+            issues.append({
+                'rule_name': rule.get('title', 'All Text Font'),
+                'rule_type': rule['rule_type'],
+                'description': f"Found {issue_count} cells with incorrect font (not {expected_font})",
+                'location': 'Workbook-wide',
+                'priority': rule.get('priority', 999)
+            })
+        if fix_count > 0:
+            fixes.append({
+                'rule_name': rule.get('title', 'All Text Font'),
+                'rule_type': rule['rule_type'],
+                'found_value': f'{issue_count} cells with wrong font',
+                'fixed_value': expected_font,
+                'location': f'Workbook-wide ({fix_count} cells)'
+            })
+
+        logging.info(f"Excel font check complete: {issue_count} issues, {fix_count} fixes")
+
+    return {'issues': issues, 'fixes': fixes}
+
+
+def check_excel_text(wb, rule):
+    """Check and fix text issues in Excel workbook (spelling, contractions, symbols, numbers)"""
+    issues = []
+    fixes = []
+    check_value = rule['check_value']
+
+    issue_count = 0
+    fix_count = 0
+
+    for sheet_name in wb.sheetnames:
+        ws = wb[sheet_name]
+        for row in ws.iter_rows():
+            for cell in row:
+                if not cell.value or not isinstance(cell.value, str):
+                    continue
+                text = cell.value
+
+                # British spelling
+                if check_value.startswith('BritishSpelling_'):
+                    american_word = check_value.replace('BritishSpelling_', '')
+                    british_word = rule['expected_value']
+                    pattern = r'\b' + re.escape(american_word) + r'\b'
+                    matches = re.findall(pattern, text, re.IGNORECASE)
+                    if matches:
+                        issue_count += len(matches)
+                        if rule['auto_fix']:
+                            def replace_preserve_case(match, replacement=british_word):
+                                word = match.group(0)
+                                if word.isupper():
+                                    return replacement.upper()
+                                elif word[0].isupper():
+                                    return replacement.capitalize()
+                                else:
+                                    return replacement
+                            cell.value = re.sub(pattern, replace_preserve_case, text, flags=re.IGNORECASE)
+                            fix_count += len(matches)
+
+                # Contractions
+                elif check_value.startswith('NoContraction_'):
+                    contraction = check_value.replace('NoContraction_', '')
+                    expanded = rule['expected_value']
+                    if contraction in text:
+                        count = text.count(contraction)
+                        issue_count += count
+                        if rule['auto_fix']:
+                            cell.value = text.replace(contraction, expanded)
+                            fix_count += count
+
+                # Ampersand
+                elif check_value == 'NoAmpersand':
+                    if '&' in text:
+                        count = text.count('&')
+                        issue_count += count
+                        if rule['auto_fix']:
+                            cell.value = text.replace('&', 'and')
+                            fix_count += count
+
+                # Percent symbol
+                elif check_value == 'PercentSymbol':
+                    percent_matches = re.findall(r'\d+%', text)
+                    if percent_matches:
+                        issue_count += len(percent_matches)
+                        if rule['auto_fix']:
+                            cell.value = re.sub(r'(\d+)%', r'\1 percent', text)
+                            fix_count += len(percent_matches)
+
+                # Apostrophe plurals
+                elif check_value == 'NoApostrophePlurals':
+                    apos_matches = re.findall(r"\b[A-Z]{2,}'s\b", text)
+                    if apos_matches:
+                        issue_count += len(apos_matches)
+
+                # Number commas
+                elif check_value == 'NumberCommas':
+                    num_matches = re.findall(r'\b\d{4,}\b', text)
+                    num_matches = [m for m in num_matches if not (1900 <= int(m) <= 2099)]
+                    if num_matches:
+                        issue_count += len(num_matches)
+                        if rule['auto_fix']:
+                            for match in num_matches:
+                                formatted = '{:,}'.format(int(match))
+                                cell.value = cell.value.replace(match, formatted)
+                                fix_count += 1
+
+                # Word choice: towards -> toward
+                elif check_value == 'Word_toward':
+                    toward_matches = re.findall(r'\btowards\b', text, re.IGNORECASE)
+                    if toward_matches:
+                        issue_count += len(toward_matches)
+                        if rule['auto_fix']:
+                            cell.value = re.sub(r'\btowards\b', 'toward', text, flags=re.IGNORECASE)
+                            fix_count += len(toward_matches)
+
+                # Avoid etc.
+                elif check_value == 'AvoidEtc':
+                    etc_matches = re.findall(r'\betc\.?\b', text, re.IGNORECASE)
+                    if etc_matches:
+                        issue_count += len(etc_matches)
+
+    # Build issue/fix messages
+    label = rule.get('title', check_value)
+    if issue_count > 0:
+        issues.append(f"Found {issue_count} instances of '{label}' violations")
+    if fix_count > 0:
+        fixes.append(f"Fixed {fix_count} instances for '{label}'")
+
+    return {'issues': issues, 'fixes': fixes}
+
 
 # ============================================
 # REPORT GENERATION
@@ -1464,6 +1752,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             result['document'].save_vsdx(fixed_stream)
             fixed_stream.seek(0)
 
+        elif file_extension in ['.xlsx', '.xls']:
+            result = validate_excel_document(file_stream, rules)
+
+            # Save fixed workbook
+            fixed_stream = BytesIO()
+            result['document'].save(fixed_stream)
+            fixed_stream.seek(0)
+
         else:
             logging.error(f"Unsupported file type: {file_extension}")
             return func.HttpResponse(
@@ -1496,7 +1792,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # Always upload report to SharePoint
         logging.info('Uploading report to SharePoint...')
         report_stream = BytesIO(report_html.encode('utf-8'))
-        report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.aspx"
+        report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.html"
         if file_url:
             report_folder = os.path.dirname(file_url)
             report_path = f"{report_folder}/{report_filename}" if report_folder else f"/{report_filename}"

@@ -84,7 +84,7 @@ def create_style_rules():
         {
             "Title": "All text must use Arial font",
             "RuleType": "Font",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "AllTextFont",
             "ExpectedValue": "Arial",
             "AutoFix": True,
@@ -98,7 +98,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'colour' not 'color'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_colour",
             "ExpectedValue": "colour",
             "AutoFix": True,
@@ -108,7 +108,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'aluminium' not 'aluminum'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_aluminium",
             "ExpectedValue": "aluminium",
             "AutoFix": True,
@@ -118,7 +118,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'analyse' not 'analyze'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_analyse",
             "ExpectedValue": "analyse",
             "AutoFix": True,
@@ -128,7 +128,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'centre' not 'center'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_centre",
             "ExpectedValue": "centre",
             "AutoFix": True,
@@ -138,7 +138,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'licence' (noun) not 'license'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_licence",
             "ExpectedValue": "licence",
             "AutoFix": False,  # Context dependent (noun vs verb)
@@ -148,7 +148,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'organise' not 'organize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_organise",
             "ExpectedValue": "organise",
             "AutoFix": True,
@@ -159,7 +159,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'analogue' not 'analog'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_analogue",
             "ExpectedValue": "analogue",
             "AutoFix": True,
@@ -169,7 +169,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'authorise' not 'authorize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_authorise",
             "ExpectedValue": "authorise",
             "AutoFix": True,
@@ -179,7 +179,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'calibre' not 'caliber'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_calibre",
             "ExpectedValue": "calibre",
             "AutoFix": True,
@@ -189,7 +189,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'catalogue' not 'catalog'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_catalogue",
             "ExpectedValue": "catalogue",
             "AutoFix": True,
@@ -199,7 +199,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'characterise' not 'characterize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_characterise",
             "ExpectedValue": "characterise",
             "AutoFix": True,
@@ -209,7 +209,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'defence' not 'defense'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_defence",
             "ExpectedValue": "defence",
             "AutoFix": True,
@@ -219,7 +219,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'finalised' not 'finalized'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_finalised",
             "ExpectedValue": "finalised",
             "AutoFix": True,
@@ -229,7 +229,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'dialogue' not 'dialog'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_dialogue",
             "ExpectedValue": "dialogue",
             "AutoFix": True,
@@ -239,7 +239,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'fibre' not 'fiber'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_fibre",
             "ExpectedValue": "fibre",
             "AutoFix": True,
@@ -249,7 +249,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'grey' not 'gray'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_grey",
             "ExpectedValue": "grey",
             "AutoFix": True,
@@ -259,7 +259,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'harbour' not 'harbor'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_harbour",
             "ExpectedValue": "harbour",
             "AutoFix": True,
@@ -269,7 +269,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'labour' not 'labor'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_labour",
             "ExpectedValue": "labour",
             "AutoFix": True,
@@ -279,7 +279,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'learnt' not 'learned' (past tense)",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_learnt",
             "ExpectedValue": "learnt",
             "AutoFix": True,
@@ -289,7 +289,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'litre' not 'liter'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_litre",
             "ExpectedValue": "litre",
             "AutoFix": True,
@@ -299,7 +299,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'manoeuvre' not 'maneuver'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_manoeuvre",
             "ExpectedValue": "manoeuvre",
             "AutoFix": True,
@@ -309,7 +309,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'maximise' not 'maximize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_maximise",
             "ExpectedValue": "maximise",
             "AutoFix": True,
@@ -319,7 +319,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'metre' not 'meter'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_metre",
             "ExpectedValue": "metre",
             "AutoFix": True,
@@ -329,7 +329,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'minimise' not 'minimize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_minimise",
             "ExpectedValue": "minimise",
             "AutoFix": True,
@@ -339,7 +339,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'mobilise' not 'mobilize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_mobilise",
             "ExpectedValue": "mobilise",
             "AutoFix": True,
@@ -349,7 +349,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'modelling' not 'modeling'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_modelling",
             "ExpectedValue": "modelling",
             "AutoFix": True,
@@ -359,7 +359,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'neighbour' not 'neighbor'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_neighbour",
             "ExpectedValue": "neighbour",
             "AutoFix": True,
@@ -369,7 +369,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'neutralise' not 'neutralize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_neutralise",
             "ExpectedValue": "neutralise",
             "AutoFix": True,
@@ -379,7 +379,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'normalise' not 'normalize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_normalise",
             "ExpectedValue": "normalise",
             "AutoFix": True,
@@ -389,7 +389,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'optimise' not 'optimize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_optimise",
             "ExpectedValue": "optimise",
             "AutoFix": True,
@@ -399,7 +399,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'programme' not 'program'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_programme",
             "ExpectedValue": "programme",
             "AutoFix": True,
@@ -409,7 +409,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'realise' not 'realize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_realise",
             "ExpectedValue": "realise",
             "AutoFix": True,
@@ -419,7 +419,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'skilful' not 'skillful'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_skilful",
             "ExpectedValue": "skilful",
             "AutoFix": True,
@@ -429,7 +429,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'spelt' not 'spelled' (past tense)",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_spelt",
             "ExpectedValue": "spelt",
             "AutoFix": True,
@@ -439,7 +439,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'stabilise' not 'stabilize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_stabilise",
             "ExpectedValue": "stabilise",
             "AutoFix": True,
@@ -449,7 +449,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'summarise' not 'summarize'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_summarise",
             "ExpectedValue": "summarise",
             "AutoFix": True,
@@ -459,7 +459,7 @@ def create_style_rules():
         {
             "Title": "Use British English spelling - 'tunnelling' not 'tunneling'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_tunnelling",
             "ExpectedValue": "tunnelling",
             "AutoFix": True,
@@ -473,7 +473,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'cannot' not 'can't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_cant",
             "ExpectedValue": "cannot",
             "AutoFix": True,
@@ -483,7 +483,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'do not' not 'don't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_dont",
             "ExpectedValue": "do not",
             "AutoFix": True,
@@ -493,7 +493,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'is not' not 'isn't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_isnt",
             "ExpectedValue": "is not",
             "AutoFix": True,
@@ -503,7 +503,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'will not' not 'won't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_wont",
             "ExpectedValue": "will not",
             "AutoFix": True,
@@ -513,7 +513,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'could not' not 'couldn't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_couldnt",
             "ExpectedValue": "could not",
             "AutoFix": True,
@@ -523,7 +523,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'did not' not 'didn't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_didnt",
             "ExpectedValue": "did not",
             "AutoFix": True,
@@ -533,7 +533,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'does not' not 'doesn't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_doesnt",
             "ExpectedValue": "does not",
             "AutoFix": True,
@@ -543,7 +543,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'has not' not 'hasn't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_hasnt",
             "ExpectedValue": "has not",
             "AutoFix": True,
@@ -553,7 +553,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'have not' not 'haven't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_havent",
             "ExpectedValue": "have not",
             "AutoFix": True,
@@ -563,7 +563,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'should not' not 'shouldn't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_shouldnt",
             "ExpectedValue": "should not",
             "AutoFix": True,
@@ -573,7 +573,7 @@ def create_style_rules():
         {
             "Title": "No contractions in formal text - use 'would not' not 'wouldn't'",
             "RuleType": "Grammar",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoContraction_wouldnt",
             "ExpectedValue": "would not",
             "AutoFix": True,
@@ -587,7 +587,7 @@ def create_style_rules():
         {
             "Title": "Date format in text: DD MONTH YEAR (e.g., 01 February 2015)",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "DateFormat_Text",
             "ExpectedValue": "DD MONTH YYYY",
             "AutoFix": False,
@@ -597,7 +597,7 @@ def create_style_rules():
         {
             "Title": "Time format: 24-hour with colon (e.g., 09:00, 18:25)",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "TimeFormat",
             "ExpectedValue": "HH:MM",
             "AutoFix": False,
@@ -611,7 +611,7 @@ def create_style_rules():
         {
             "Title": "Numbers below 10 should be spelled out in text",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NumbersBelowTen",
             "ExpectedValue": "Spelled",
             "AutoFix": False,  # Context dependent
@@ -621,7 +621,7 @@ def create_style_rules():
         {
             "Title": "Use commas with numbers of 4+ digits (e.g., 1,000)",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NumberCommas",
             "ExpectedValue": "WithCommas",
             "AutoFix": True,
@@ -635,7 +635,7 @@ def create_style_rules():
         {
             "Title": "Section titles should be capitalised",
             "RuleType": "Capitalisation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "SectionTitles",
             "ExpectedValue": "Capitalised",
             "AutoFix": True,
@@ -645,7 +645,7 @@ def create_style_rules():
         {
             "Title": "Subsidiary headings: only first letter and proper nouns capitalised",
             "RuleType": "Capitalisation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "SubsidiaryHeadings",
             "ExpectedValue": "SentenceCase",
             "AutoFix": False,
@@ -655,7 +655,7 @@ def create_style_rules():
         {
             "Title": "Job titles only capitalised when with person's name",
             "RuleType": "Capitalisation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "JobTitles",
             "ExpectedValue": "ContextDependent",
             "AutoFix": False,
@@ -665,7 +665,7 @@ def create_style_rules():
         {
             "Title": "Do not capitalise for emphasis",
             "RuleType": "Capitalisation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoEmphasisCaps",
             "ExpectedValue": "NoCapsForEmphasis",
             "AutoFix": False,
@@ -679,7 +679,7 @@ def create_style_rules():
         {
             "Title": "Use 'toward' not 'towards'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "Word_toward",
             "ExpectedValue": "toward",
             "AutoFix": True,
@@ -689,7 +689,7 @@ def create_style_rules():
         {
             "Title": "Avoid 'etc.' - be specific instead",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "AvoidEtc",
             "ExpectedValue": "NoEtc",
             "AutoFix": False,
@@ -699,7 +699,7 @@ def create_style_rules():
         {
             "Title": "Use 'will', 'must', 'shall' instead of 'should' or 'could'",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "AvoidShould",
             "ExpectedValue": "will/must/shall",
             "AutoFix": False,
@@ -709,7 +709,7 @@ def create_style_rules():
         {
             "Title": "Use metric units where possible",
             "RuleType": "Language",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "PreferMetric",
             "ExpectedValue": "Metric",
             "AutoFix": False,
@@ -723,7 +723,7 @@ def create_style_rules():
         {
             "Title": "Use hyphens with suffix '-wide' (e.g., site-wide)",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "Hyphen_wide",
             "ExpectedValue": "Hyphenated",
             "AutoFix": True,
@@ -733,7 +733,7 @@ def create_style_rules():
         {
             "Title": "Hyphenate compound modifiers (e.g., 15-page document)",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "CompoundModifiers",
             "ExpectedValue": "Hyphenated",
             "AutoFix": False,
@@ -747,7 +747,7 @@ def create_style_rules():
         {
             "Title": "Use single quotes for special terms on first reference",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "SpecialTerms",
             "ExpectedValue": "SingleQuotes",
             "AutoFix": False,
@@ -757,7 +757,7 @@ def create_style_rules():
         {
             "Title": "Use double quotes for direct speech",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "DirectSpeech",
             "ExpectedValue": "DoubleQuotes",
             "AutoFix": False,
@@ -771,7 +771,7 @@ def create_style_rules():
         {
             "Title": "Never use apostrophes for plurals",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoApostrophePlurals",
             "ExpectedValue": "NoApostrophe",
             "AutoFix": True,
@@ -785,7 +785,7 @@ def create_style_rules():
         {
             "Title": "Avoid ampersand (&) - use 'and' instead",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "NoAmpersand",
             "ExpectedValue": "and",
             "AutoFix": True,
@@ -795,7 +795,7 @@ def create_style_rules():
         {
             "Title": "Spell out 'percent' in text (not %)",
             "RuleType": "Punctuation",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "PercentSymbol",
             "ExpectedValue": "percent",
             "AutoFix": True,
@@ -809,7 +809,7 @@ def create_style_rules():
         {
             "Title": "Figures and tables must have captions",
             "RuleType": "Layout",
-            "DocumentType": "Word",
+            "DocumentType": "All",
             "CheckValue": "FigureTableCaptions",
             "ExpectedValue": "Required",
             "AutoFix": False,
@@ -843,7 +843,7 @@ def create_style_rules():
         {
             "Title": "British spelling: 'Programme' not 'Program' (in UK/Mace context)",
             "RuleType": "Language",
-            "DocumentType": "Both",
+            "DocumentType": "All",
             "CheckValue": "BritishSpelling_programme",
             "ExpectedValue": "Programme",
             "AutoFix": True,
@@ -853,7 +853,7 @@ def create_style_rules():
         {
             "Title": "Use 'Constructability' not 'Constructibility'",
             "RuleType": "Language",
-            "DocumentType": "Both",
+            "DocumentType": "All",
             "CheckValue": "Constructability",
             "ExpectedValue": "Constructability",
             "AutoFix": True,
