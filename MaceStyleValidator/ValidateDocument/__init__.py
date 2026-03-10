@@ -562,7 +562,6 @@ def validate_visio_document(file_stream, rules):
                                         shape_data['shape'].text = new_text
                                         shapes_updated += 1
 
-                            issues.append(f"Found {changes_count} style violations in Visio shapes")
                             fixes_applied.append(f"Applied {changes_count} style corrections to {shapes_updated} shapes")
                             logging.info(f"Claude corrections applied: {changes_count} changes in {shapes_updated} shapes")
                         else:
@@ -1679,13 +1678,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                                                 run.text = ""
                                         para_index += 1
 
-                                issues.append({
-                                    'rule_name': 'AI Style Corrections',
-                                    'rule_type': 'AI',
-                                    'description': f"Found {changes_count} style violations",
-                                    'location': 'Document-wide',
-                                    'priority': 1
-                                })
                                 fixes_applied.append({
                                     'rule_name': 'AI Style Corrections',
                                     'rule_type': 'AI',
@@ -1747,10 +1739,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         elif file_extension in ['.vsdx', '.vsd']:
             result = validate_visio_document(file_stream, rules)
 
-            # Save fixed document
-            fixed_stream = BytesIO()
-            result['document'].save_vsdx(fixed_stream)
-            fixed_stream.seek(0)
+            # Save fixed document (vsdx library requires a filename, not a stream)
+            import tempfile
+            with tempfile.NamedTemporaryFile(suffix='.vsdx', delete=False) as tmp_out:
+                tmp_out_path = tmp_out.name
+            result['document'].save_vsdx(tmp_out_path)
+            fixed_stream = BytesIO(open(tmp_out_path, 'rb').read())
+            os.unlink(tmp_out_path)
 
         elif file_extension in ['.xlsx', '.xls']:
             result = validate_excel_document(file_stream, rules)
@@ -1917,15 +1912,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     except Exception as e:
-        logging.error(f"=== VALIDATION FAILED ===")
+        logging.error(f"=== VALIDATION FAILED (v5.0-excel) ===")
         logging.error(f"Error: {str(e)}")
         logging.error(f"Error type: {type(e).__name__}")
         import traceback
-        logging.error(f"Traceback: {traceback.format_exc()}")
+        tb = traceback.format_exc()
+        logging.error(f"Traceback: {tb}")
         return func.HttpResponse(
             json.dumps({
                 "error": str(e),
-                "error_type": type(e).__name__
+                "error_type": type(e).__name__,
+                "version": "v5.0-excel",
+                "traceback": tb
             }),
             mimetype="application/json",
             status_code=500

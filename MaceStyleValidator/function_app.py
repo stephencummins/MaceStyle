@@ -10,7 +10,8 @@ app = func.FunctionApp()
 
 @app.route(route="ValidateDocument", methods=["GET", "POST"])
 def ValidateDocument(req: func.HttpRequest) -> func.HttpResponse:
-    """HTTP trigger function to validate documents"""
+    """HTTP trigger function to validate documents - v5.0-excel"""
+    logging.info("=== ValidateDocument v5.0-excel ===")
     from ValidateDocument import main
     return main(req)
 
