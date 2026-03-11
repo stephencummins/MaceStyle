@@ -85,6 +85,7 @@ def check_british_spelling(doc, rule):
     """Check and fix American spellings"""
     issues = []
     fixes = []
+    changes = []
 
     american_word = rule['check_value'].replace('BritishSpelling_', '')
     british_word = rule['expected_value']
@@ -93,7 +94,7 @@ def check_british_spelling(doc, rule):
     fix_count = 0
 
     # Check all paragraphs
-    for paragraph in doc.paragraphs:
+    for para_idx, paragraph in enumerate(doc.paragraphs):
         for run in paragraph.runs:
             if run.text:
                 # Use word boundaries to avoid partial matches
@@ -114,7 +115,9 @@ def check_british_spelling(doc, rule):
                             else:
                                 return british_word
 
+                        before = run.text
                         run.text = re.sub(pattern, replace_preserve_case, run.text, flags=re.IGNORECASE)
+                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                         fix_count += len(matches)
 
     if issue_count > 0:
@@ -122,12 +125,13 @@ def check_british_spelling(doc, rule):
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} instances to British spelling '{british_word}'")
 
-    return {'issues': issues, 'fixes': fixes}
+    return {'issues': issues, 'fixes': fixes, 'changes': changes}
 
 def check_contractions(doc, rule):
     """Check and fix contractions"""
     issues = []
     fixes = []
+    changes = []
 
     contraction = rule['check_value'].replace('NoContraction_', '')
     expanded = rule['expected_value']
@@ -136,7 +140,7 @@ def check_contractions(doc, rule):
     fix_count = 0
 
     # Check all paragraphs
-    for paragraph in doc.paragraphs:
+    for para_idx, paragraph in enumerate(doc.paragraphs):
         for run in paragraph.runs:
             if run.text and contraction in run.text:
                 # Count occurrences
@@ -144,7 +148,9 @@ def check_contractions(doc, rule):
                 issue_count += count
 
                 if rule['auto_fix']:
+                    before = run.text
                     run.text = run.text.replace(contraction, expanded)
+                    changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                     fix_count += count
 
     if issue_count > 0:
@@ -152,12 +158,13 @@ def check_contractions(doc, rule):
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} contractions to '{expanded}'")
 
-    return {'issues': issues, 'fixes': fixes}
+    return {'issues': issues, 'fixes': fixes, 'changes': changes}
 
 def check_word_choice(doc, rule):
     """Check word choice violations"""
     issues = []
     fixes = []
+    changes = []
 
     check_value = rule['check_value']
 
@@ -167,14 +174,16 @@ def check_word_choice(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for paragraph in doc.paragraphs:
+        for para_idx, paragraph in enumerate(doc.paragraphs):
             for run in paragraph.runs:
                 if run.text and 'towards' in run.text.lower():
                     matches = len(re.findall(r'\btowards\b', run.text, re.IGNORECASE))
                     issue_count += matches
 
                     if rule['auto_fix']:
+                        before = run.text
                         run.text = re.sub(r'\btowards\b', 'toward', run.text, flags=re.IGNORECASE)
+                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                         fix_count += matches
 
         if issue_count > 0:
@@ -195,7 +204,7 @@ def check_word_choice(doc, rule):
         if issue_count > 0:
             issues.append(f"Found {issue_count} instances of 'etc.' - be specific instead")
 
-    return {'issues': issues, 'fixes': fixes}
+    return {'issues': issues, 'fixes': fixes, 'changes': changes}
 
 # ============================================
 # PUNCTUATION VALIDATORS
@@ -205,6 +214,7 @@ def check_symbols(doc, rule):
     """Check and fix symbol usage"""
     issues = []
     fixes = []
+    changes = []
 
     check_value = rule['check_value']
 
@@ -213,7 +223,7 @@ def check_symbols(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for paragraph in doc.paragraphs:
+        for para_idx, paragraph in enumerate(doc.paragraphs):
             for run in paragraph.runs:
                 if run.text and '&' in run.text:
                     # Count ampersands (exclude &nbsp; and other HTML entities)
@@ -221,7 +231,9 @@ def check_symbols(doc, rule):
                     issue_count += matches
 
                     if rule['auto_fix']:
+                        before = run.text
                         run.text = run.text.replace('&', 'and')
+                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                         fix_count += matches
 
         if issue_count > 0:
@@ -234,7 +246,7 @@ def check_symbols(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for paragraph in doc.paragraphs:
+        for para_idx, paragraph in enumerate(doc.paragraphs):
             for run in paragraph.runs:
                 if run.text and '%' in run.text:
                     # Find number% patterns
@@ -242,8 +254,10 @@ def check_symbols(doc, rule):
                     issue_count += len(matches)
 
                     if rule['auto_fix']:
+                        before = run.text
                         # Replace number% with number percent
                         run.text = re.sub(r'(\d+)%', r'\1 percent', run.text)
+                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                         fix_count += len(matches)
 
         if issue_count > 0:
@@ -266,12 +280,13 @@ def check_symbols(doc, rule):
         if issue_count > 0:
             issues.append(f"Found {issue_count} incorrect apostrophes in plurals (e.g., CD's should be CDs)")
 
-    return {'issues': issues, 'fixes': fixes}
+    return {'issues': issues, 'fixes': fixes, 'changes': changes}
 
 def check_numbers(doc, rule):
     """Check number formatting"""
     issues = []
     fixes = []
+    changes = []
 
     check_value = rule['check_value']
 
@@ -280,7 +295,7 @@ def check_numbers(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for paragraph in doc.paragraphs:
+        for para_idx, paragraph in enumerate(doc.paragraphs):
             for run in paragraph.runs:
                 if run.text:
                     # Find numbers with 4+ digits without commas
@@ -290,18 +305,20 @@ def check_numbers(doc, rule):
                     issue_count += len(matches)
 
                     if rule['auto_fix'] and matches:
+                        before = run.text
                         # Add commas to numbers
                         for match in matches:
                             formatted = '{:,}'.format(int(match))
                             run.text = run.text.replace(match, formatted)
                             fix_count += 1
+                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
 
         if issue_count > 0:
             issues.append(f"Found {issue_count} numbers missing commas")
         if fix_count > 0:
             fixes.append(f"Added commas to {fix_count} numbers")
 
-    return {'issues': issues, 'fixes': fixes}
+    return {'issues': issues, 'fixes': fixes, 'changes': changes}
 
 # ============================================
 # MAIN DISPATCHER

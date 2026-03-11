@@ -226,7 +226,7 @@ flowchart TD
 - `powerpoint_validator.py`: PowerPoint (.pptx) validation — hard-coded rules only
 - `ai_client.py`: Claude AI integration (Word only)
 - `sharepoint_client.py`: Graph API operations
-- `report.py`: HTML report generation
+- `report.py`: HTML report generation (summary + collapsible before/after diffs)
 - `sharepoint_results.py`: Validation Results list operations
 
 **Note:** AI validation (Claude) is enabled for Word documents only. Visio, Excel, and PowerPoint use hard-coded rules only — AI was disabled for these formats because diagram/spreadsheet/slide text produces too many false positives and unreliable text write-back.
@@ -432,7 +432,7 @@ flowchart LR
 
 ## Version Information
 
-- **Current Version**: v5.0
+- **Current Version**: v5.1
 - **Last Updated**: March 2026
 - **Python Version**: 3.11
 - **Azure Functions Runtime**: 4.x

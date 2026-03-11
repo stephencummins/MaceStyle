@@ -15,16 +15,21 @@ def _normalise_issue(item, rule=None):
     }
 
 
-def _normalise_fix(item, rule=None):
+def _normalise_fix(item, rule=None, changes=None):
     if isinstance(item, dict) and 'rule_name' in item:
+        if changes:
+            item['changes'] = changes
         return item
-    return {
+    result = {
         'rule_name': rule.get('title', 'Unknown') if rule else 'Unknown',
         'rule_type': rule.get('rule_type', 'Unknown') if rule else 'Unknown',
         'found_value': 'Non-compliant value',
         'fixed_value': str(item),
         'location': 'Workbook-wide'
     }
+    if changes:
+        result['changes'] = changes
+    return result
 
 
 def validate_excel_document(file_stream, rules):
@@ -55,8 +60,9 @@ def validate_excel_document(file_stream, rules):
         if result:
             for item in result.get('issues', []):
                 issues.append(_normalise_issue(item, rule))
+            result_changes = result.get('changes', [])
             for item in result.get('fixes', []):
-                fixes_applied.append(_normalise_fix(item, rule))
+                fixes_applied.append(_normalise_fix(item, rule, changes=result_changes))
 
     logging.info(f"Excel validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
     return {'document': wb, 'issues': issues, 'fixes_applied': fixes_applied}
@@ -118,6 +124,7 @@ def _check_text(wb, rule):
     """Check and fix text issues in Excel (spelling, contractions, symbols, numbers)"""
     issues = []
     fixes = []
+    changes = []
     check_value = rule['check_value']
     issue_count = 0
     fix_count = 0
@@ -129,6 +136,7 @@ def _check_text(wb, rule):
                 if not cell.value or not isinstance(cell.value, str):
                     continue
                 text = cell.value
+                location = f'{sheet_name}!{cell.coordinate}'
 
                 if check_value.startswith('BritishSpelling_'):
                     american_word = check_value.replace('BritishSpelling_', '')
@@ -145,7 +153,9 @@ def _check_text(wb, rule):
                                 elif word[0].isupper():
                                     return replacement.capitalize()
                                 return replacement
+                            before = cell.value
                             cell.value = re.sub(pattern, replace_preserve_case, text, flags=re.IGNORECASE)
+                            changes.append({'before': before, 'after': cell.value, 'location': location})
                             fix_count += len(matches)
 
                 elif check_value.startswith('NoContraction_'):
@@ -155,7 +165,9 @@ def _check_text(wb, rule):
                         count = text.count(contraction)
                         issue_count += count
                         if rule['auto_fix']:
+                            before = cell.value
                             cell.value = text.replace(contraction, expanded)
+                            changes.append({'before': before, 'after': cell.value, 'location': location})
                             fix_count += count
 
                 elif check_value == 'NoAmpersand':
@@ -163,7 +175,9 @@ def _check_text(wb, rule):
                         count = text.count('&')
                         issue_count += count
                         if rule['auto_fix']:
+                            before = cell.value
                             cell.value = text.replace('&', 'and')
+                            changes.append({'before': before, 'after': cell.value, 'location': location})
                             fix_count += count
 
                 elif check_value == 'PercentSymbol':
@@ -171,7 +185,9 @@ def _check_text(wb, rule):
                     if percent_matches:
                         issue_count += len(percent_matches)
                         if rule['auto_fix']:
+                            before = cell.value
                             cell.value = re.sub(r'(\d+)%', r'\1 percent', text)
+                            changes.append({'before': before, 'after': cell.value, 'location': location})
                             fix_count += len(percent_matches)
 
                 elif check_value == 'NoApostrophePlurals':
@@ -185,17 +201,21 @@ def _check_text(wb, rule):
                     if num_matches:
                         issue_count += len(num_matches)
                         if rule['auto_fix']:
+                            before = cell.value
                             for match in num_matches:
                                 formatted = '{:,}'.format(int(match))
                                 cell.value = cell.value.replace(match, formatted)
                                 fix_count += 1
+                            changes.append({'before': before, 'after': cell.value, 'location': location})
 
                 elif check_value == 'Word_toward':
                     toward_matches = re.findall(r'\btowards\b', text, re.IGNORECASE)
                     if toward_matches:
                         issue_count += len(toward_matches)
                         if rule['auto_fix']:
+                            before = cell.value
                             cell.value = re.sub(r'\btowards\b', 'toward', text, flags=re.IGNORECASE)
+                            changes.append({'before': before, 'after': cell.value, 'location': location})
                             fix_count += len(toward_matches)
 
                 elif check_value == 'AvoidEtc':
@@ -209,4 +229,4 @@ def _check_text(wb, rule):
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} instances for '{label}'")
 
-    return {'issues': issues, 'fixes': fixes}
+    return {'issues': issues, 'fixes': fixes, 'changes': changes}

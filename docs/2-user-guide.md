@@ -139,25 +139,44 @@ Validated: 08 November 2025 at 20:42:15 UTC
 └─────────────┴─────────────┴────────────────┘
 ```
 
-#### 3. Fixes Applied (Green Section)
+#### 3. Changes Made (Green Section)
 Lists all automatic corrections:
 
 ```
-✅ Fixes Applied (156)
+✅ Changes Made (156)
 
 ✓ Fixed 145 text runs to Arial
 ✓ Applied 8 style corrections (British English, contractions, symbols, etc.)
 ✓ Replaced 'finalized' with 'finalised' (3 instances)
 ```
 
-#### 4. Issues Detected (Red Section)
-Lists all problems found (including those fixed):
+#### 4. Detailed Changes (Expandable Diffs)
+For text corrections (spelling, contractions, symbols, numbers), a collapsible section shows exactly what changed:
 
 ```
-⚠️ Issues Detected (156)
+▶ British English - 'finalised' not 'finalized' (3 changes)
+  ┌──────────────┬──────────────────────┬──────────────────────┐
+  │ Location     │ Before               │ After                │
+  ├──────────────┼──────────────────────┼──────────────────────┤
+  │ Paragraph 4  │ We finalized the...  │ We finalised the...  │
+  │ Paragraph 12 │ ...finalized plan... │ ...finalised plan... │
+  └──────────────┴──────────────────────┴──────────────────────┘
+```
 
-⚠ Found 145 text runs with incorrect font
-⚠ Found 8 style violations
+- Click a rule name to expand/collapse the diff table
+- **Before** text is shown with red strikethrough
+- **After** text is shown with green highlight
+- Font/colour/size fixes show summary only (no diff — a font name change isn't useful to see)
+- Large rules are capped at 50 changes to keep reports manageable
+
+#### 5. Remaining Issues (Red/Amber Section)
+Lists problems that could not be auto-fixed and require manual review:
+
+```
+⚠️ Remaining Issues (5)
+
+⚠ Found 3 instances of 'etc.' - be specific instead
+⚠ Found 2 incorrect apostrophes in plurals
 ```
 
 ### Report Colour Coding
@@ -539,6 +558,7 @@ Include:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v5.1 | Mar 2026 | Before/after diff view in HTML reports — collapsible per-rule text change details |
 | v5.0 | Mar 2026 | Multi-format support (Word, Excel, PowerPoint, Visio), three-way status, Logic App, DevOps CI/CD |
 | v4.2 | Nov 2025 | Enhanced HTML reports |
 | v3.3 | Nov 2025 | Added AI validation and Validation Results list |

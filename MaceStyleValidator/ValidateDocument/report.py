@@ -101,6 +101,40 @@ def generate_report(file_name, issues, fixes_applied):
     else:
         issues_section = ''
 
+    # Build detailed changes section (collapsible diffs)
+    detailed_changes_html = ''
+    changes_found = False
+    for fix in fixes_applied:
+        if isinstance(fix, dict) and fix.get('changes'):
+            changes_found = True
+            break
+
+    if changes_found:
+        details_items = ''
+        for fix in fixes_applied:
+            if not isinstance(fix, dict) or not fix.get('changes'):
+                continue
+            rule_name = _escape_html(fix.get('rule_name', 'Unknown'))
+            fix_changes = fix['changes']
+            total = len(fix_changes)
+            capped = fix_changes[:50]
+            details_items += f'<details><summary>{rule_name} ({total} change{"s" if total != 1 else ""})</summary>'
+            details_items += '<table><thead><tr><th>Location</th><th>Before</th><th>After</th></tr></thead><tbody>'
+            for change in capped:
+                details_items += f"""<tr>
+                    <td>{_escape_html(change.get('location', ''))}</td>
+                    <td><span class="diff-before">{_escape_html(change.get('before', ''))}</span></td>
+                    <td><span class="diff-after">{_escape_html(change.get('after', ''))}</span></td>
+                </tr>"""
+            if total > 50:
+                details_items += f'<tr><td colspan="3" style="text-align:center;color:#6c757d;font-style:italic;">and {total - 50} more...</td></tr>'
+            details_items += '</tbody></table></details>'
+
+        detailed_changes_html = f"""<div class="section">
+            <h2>Detailed Changes</h2>
+            {details_items}
+        </div>"""
+
     if total_issues_found == 0:
         no_issues_section = """<div class="section passed-section">
             <h2>All Clear</h2>
@@ -261,6 +295,10 @@ def generate_report(file_name, issues, fixes_applied):
             font-size: 11px;
             font-weight: 600;
         }}
+        .diff-before {{ background: #ffeef0; text-decoration: line-through; color: #b31d28; padding: 2px 4px; }}
+        .diff-after {{ background: #e6ffec; color: #22863a; padding: 2px 4px; }}
+        details {{ margin-bottom: 8px; }}
+        summary {{ cursor: pointer; font-weight: 600; color: #1F4E79; padding: 6px 0; }}
         .footer {{
             text-align: center;
             margin-top: 28px;
@@ -302,6 +340,7 @@ def generate_report(file_name, issues, fixes_applied):
 
     {no_issues_section}
     {fixes_section}
+    {detailed_changes_html}
     {issues_section}
 
     <div class="footer">

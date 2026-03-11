@@ -19,17 +19,22 @@ def _normalise_issue(item, rule=None):
     }
 
 
-def _normalise_fix(item, rule=None):
+def _normalise_fix(item, rule=None, changes=None):
     """Ensure a fix item is a structured dict"""
     if isinstance(item, dict) and 'rule_name' in item:
+        if changes:
+            item['changes'] = changes
         return item
-    return {
+    result = {
         'rule_name': rule.get('title', 'Unknown') if rule else 'Unknown',
         'rule_type': rule.get('rule_type', 'Unknown') if rule else 'Unknown',
         'found_value': 'Non-compliant value',
         'fixed_value': str(item),
         'location': 'Document-wide'
     }
+    if changes:
+        result['changes'] = changes
+    return result
 
 
 def validate_word_document(file_stream, rules):
@@ -56,22 +61,29 @@ def validate_word_document(file_stream, rules):
                 if result and result['changes_made'] > 0 and result['corrected_text']:
                     corrected_paras = result['corrected_text'].split('\n\n')
                     para_index = 0
+                    ai_changes = []
 
                     for para in doc.paragraphs:
                         if para.text.strip() and para_index < len(corrected_paras):
+                            original_text = para.text
                             if len(para.runs) > 0:
                                 para.runs[0].text = corrected_paras[para_index]
                                 for run in para.runs[1:]:
                                     run.text = ""
+                            if original_text != corrected_paras[para_index]:
+                                ai_changes.append({'before': original_text, 'after': corrected_paras[para_index], 'location': f'Paragraph {para_index + 1}'})
                             para_index += 1
 
-                    fixes_applied.append({
+                    ai_fix = {
                         'rule_name': 'AI Style Corrections',
                         'rule_type': 'AI',
                         'found_value': f'{result["changes_made"]} style violations',
                         'fixed_value': 'British English, contractions, symbols corrected',
                         'location': 'Document-wide'
-                    })
+                    }
+                    if ai_changes:
+                        ai_fix['changes'] = ai_changes
+                    fixes_applied.append(ai_fix)
                     logging.info(f"Claude corrections applied: {result['changes_made']}")
         except Exception as e:
             logging.error(f"Claude validation failed: {e}")
@@ -100,8 +112,9 @@ def validate_word_document(file_stream, rules):
         if result:
             for item in result.get('issues', []):
                 issues.append(_normalise_issue(item, rule))
+            result_changes = result.get('changes', [])
             for item in result.get('fixes', []):
-                fixes_applied.append(_normalise_fix(item, rule))
+                fixes_applied.append(_normalise_fix(item, rule, changes=result_changes))
 
     logging.info(f"Word validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
     return {'document': doc, 'issues': issues, 'fixes_applied': fixes_applied}

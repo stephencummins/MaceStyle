@@ -40,17 +40,23 @@ def validate_powerpoint_document(file_stream, rules):
                         'location': 'Presentation-wide',
                         'priority': rule.get('priority', 999)
                     })
+            result_changes = result.get('changes', [])
             for item in result.get('fixes', []):
                 if isinstance(item, dict) and 'rule_name' in item:
+                    if result_changes:
+                        item['changes'] = result_changes
                     fixes_applied.append(item)
                 else:
-                    fixes_applied.append({
+                    fix_dict = {
                         'rule_name': rule.get('title', 'Unknown'),
                         'rule_type': rule.get('rule_type', 'Unknown'),
                         'found_value': 'Non-compliant value',
                         'fixed_value': str(item),
                         'location': 'Presentation-wide'
-                    })
+                    }
+                    if result_changes:
+                        fix_dict['changes'] = result_changes
+                    fixes_applied.append(fix_dict)
 
     logging.info(f"PowerPoint validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
     return {'document': prs, 'issues': issues, 'fixes_applied': fixes_applied}
@@ -120,11 +126,12 @@ def _check_text(prs, rule):
     """Check and fix text issues in PowerPoint (spelling, contractions, symbols, numbers)"""
     issues = []
     fixes = []
+    changes = []
     check_value = rule['check_value']
     issue_count = 0
     fix_count = 0
 
-    for slide in prs.slides:
+    for slide_idx, slide in enumerate(prs.slides):
         for shape in slide.shapes:
             if not shape.has_text_frame:
                 continue
@@ -133,6 +140,7 @@ def _check_text(prs, rule):
                     if not run.text or not run.text.strip():
                         continue
                     text = run.text
+                    location = f'Slide {slide_idx + 1}'
 
                     if check_value.startswith('BritishSpelling_'):
                         american_word = check_value.replace('BritishSpelling_', '')
@@ -149,7 +157,9 @@ def _check_text(prs, rule):
                                     elif word[0].isupper():
                                         return replacement.capitalize()
                                     return replacement
+                                before = run.text
                                 run.text = re.sub(pattern, replace_preserve_case, text, flags=re.IGNORECASE)
+                                changes.append({'before': before, 'after': run.text, 'location': location})
                                 fix_count += len(matches)
 
                     elif check_value.startswith('NoContraction_'):
@@ -159,7 +169,9 @@ def _check_text(prs, rule):
                             count = text.count(contraction)
                             issue_count += count
                             if rule['auto_fix']:
+                                before = run.text
                                 run.text = text.replace(contraction, expanded)
+                                changes.append({'before': before, 'after': run.text, 'location': location})
                                 fix_count += count
 
                     elif check_value == 'NoAmpersand':
@@ -167,7 +179,9 @@ def _check_text(prs, rule):
                             count = text.count('&')
                             issue_count += count
                             if rule['auto_fix']:
+                                before = run.text
                                 run.text = text.replace('&', 'and')
+                                changes.append({'before': before, 'after': run.text, 'location': location})
                                 fix_count += count
 
                     elif check_value == 'PercentSymbol':
@@ -175,7 +189,9 @@ def _check_text(prs, rule):
                         if percent_matches:
                             issue_count += len(percent_matches)
                             if rule['auto_fix']:
+                                before = run.text
                                 run.text = re.sub(r'(\d+)%', r'\1 percent', text)
+                                changes.append({'before': before, 'after': run.text, 'location': location})
                                 fix_count += len(percent_matches)
 
                     elif check_value == 'NoApostrophePlurals':
@@ -189,17 +205,21 @@ def _check_text(prs, rule):
                         if num_matches:
                             issue_count += len(num_matches)
                             if rule['auto_fix']:
+                                before = run.text
                                 for match in num_matches:
                                     formatted = '{:,}'.format(int(match))
                                     run.text = run.text.replace(match, formatted)
                                     fix_count += 1
+                                changes.append({'before': before, 'after': run.text, 'location': location})
 
                     elif check_value == 'Word_toward':
                         toward_matches = re.findall(r'\btowards\b', text, re.IGNORECASE)
                         if toward_matches:
                             issue_count += len(toward_matches)
                             if rule['auto_fix']:
+                                before = run.text
                                 run.text = re.sub(r'\btowards\b', 'toward', text, flags=re.IGNORECASE)
+                                changes.append({'before': before, 'after': run.text, 'location': location})
                                 fix_count += len(toward_matches)
 
                     elif check_value == 'AvoidEtc':
@@ -213,4 +233,4 @@ def _check_text(prs, rule):
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} instances for '{label}'")
 
-    return {'issues': issues, 'fixes': fixes}
+    return {'issues': issues, 'fixes': fixes, 'changes': changes}
