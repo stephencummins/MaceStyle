@@ -15,8 +15,8 @@ graph TB
         REPORT[HTML Reports]
     end
 
-    subgraph "Power Automate"
-        FLOW[Validation Flow]
+    subgraph "Orchestration"
+        FLOW[Logic App / Power Automate]
     end
 
     subgraph "Azure"
@@ -77,10 +77,10 @@ graph TB
 **Purpose:** Store documents and trigger validation
 
 **Columns:**
-- `ValidationStatus` (Choice): Validating..., Passed, Failed
+- `ValidationStatus` (Choice): Not Validated, Validate Now, Validating..., Passed, Review Required, Failed
 - `ValidationResultLink` (Hyperlink): Link to Validation Results list item
 
-**Triggers:** Power Automate flow on file create/modify
+**Triggers:** Logic App (or Power Automate) on file create/modify
 
 ---
 
@@ -90,7 +90,7 @@ graph TB
 **Columns:**
 - `Title` (Text): Rule description
 - `RuleType` (Choice): Font, Language, Grammar, Punctuation, etc.
-- `DocumentType` (Choice): Word, Visio, Both
+- `DocumentType` (Choice): Word, Visio, Excel, PowerPoint, Both, All
 - `CheckValue` (Text): What to check
 - `ExpectedValue` (Text): Correct value
 - `AutoFix` (Yes/No): Can be auto-corrected
@@ -111,7 +111,7 @@ graph TB
 - `Title` (Text): "Validation: {filename}"
 - `FileName` (Text): Document name
 - `ValidationDate` (DateTime): When validated
-- `Status` (Choice): Passed, Failed
+- `Status` (Choice): Passed, Review Required, Failed
 - `IssuesFound` (Text): Count of issues
 - `IssuesFixed` (Text): Count of fixes
 - `ReportLink` (Hyperlink): Link to HTML report
@@ -123,17 +123,21 @@ graph TB
 
 ---
 
-### 4. Power Automate Flow
+### 4. Logic App (or Power Automate)
 **Purpose:** Orchestrate validation workflow
+
+**Deployment:** ARM template at `infra/logic-app.json` (preferred for production). Power Automate can also be used for dev/testing.
 
 **Trigger:** When a file is created or modified (SharePoint)
 
 **Actions:**
-1. Get file properties
-2. Get file content (base64 encode)
-3. HTTP POST to Azure Function
-4. Parse JSON response
-5. (Optional) Update document metadata
+1. Filter to supported file types (.docx, .xlsx, .pptx, .vsdx, etc.)
+2. Set ValidationStatus to "Validating..."
+3. Get file properties and content (base64 encode)
+4. HTTP POST to Azure Function
+5. Parse JSON response
+6. If fixes applied, upload corrected file back to SharePoint
+7. Update document metadata (status, description, report link, etc.)
 
 **Data Flow:**
 ```json
@@ -173,7 +177,10 @@ Response from Azure Function:
 
 **Key Dependencies:**
 - `python-docx`: Word document manipulation
-- `anthropic`: Claude AI SDK
+- `python-pptx`: PowerPoint document manipulation
+- `openpyxl`: Excel document manipulation
+- `vsdx`: Visio document manipulation
+- `anthropic`: Claude AI SDK (Word only)
 - `msal`: Microsoft authentication
 - `requests`: HTTP client
 
@@ -204,7 +211,7 @@ flowchart TD
     REPORT --> UP_REPORT[Upload HTML Report]
     UP_REPORT --> RES[Save to Validation Results]
     RES --> META[Update Document Metadata]
-    META --> STATUS2[Update Status: Passed/Failed]
+    META --> STATUS2[Update Status: Passed/Review Required/Failed]
     STATUS2 --> END([Return Response])
 
     style CLAUDE fill:#f3e5f5
@@ -212,19 +219,24 @@ flowchart TD
     style STATUS2 fill:#e8f5e9
 ```
 
-**Key Functions:**
-- `fetch_validation_rules()`: Get rules from SharePoint
-- `validate_word_document()`: Apply all validation rules
-- `validate_with_claude()`: AI-powered validation
-- `generate_report()`: Create styled HTML report
-- `save_validation_result()`: Log to Validation Results list
+**Key Modules:**
+- `word_validator.py`: Word (.docx) validation with AI + hard-coded rules
+- `visio_validator.py`: Visio (.vsdx) validation — hard-coded rules only
+- `excel_validator.py`: Excel (.xlsx) validation — hard-coded rules only
+- `powerpoint_validator.py`: PowerPoint (.pptx) validation — hard-coded rules only
+- `ai_client.py`: Claude AI integration (Word only)
+- `sharepoint_client.py`: Graph API operations
+- `report.py`: HTML report generation
+- `sharepoint_results.py`: Validation Results list operations
+
+**Note:** AI validation (Claude) is enabled for Word documents only. Visio, Excel, and PowerPoint use hard-coded rules only — AI was disabled for these formats because diagram/spreadsheet/slide text produces too many false positives and unreliable text write-back.
 
 ---
 
-### 6. Claude AI Integration
-**Purpose:** Advanced language validation
+### 6. Claude AI Integration (Word Only)
+**Purpose:** Advanced language validation for Word documents
 
-**Model:** Claude 3 Haiku (fast, cost-effective)
+**Model:** Claude Haiku 4.5 (fast, cost-effective)
 
 **Capabilities:**
 - British English spelling corrections
@@ -298,7 +310,7 @@ Return JSON: {"corrected_text": "...", "changes_made": 5}
 sequenceDiagram
     participant User
     participant SP as SharePoint
-    participant PA as Power Automate
+    participant PA as Logic App
     participant AF as Azure Function
     participant Graph as Graph API
     participant Claude as Claude AI
@@ -409,9 +421,9 @@ flowchart LR
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
 | **Frontend** | SharePoint Online | Document storage, UI |
-| **Workflow** | Power Automate | Orchestration |
+| **Workflow** | Logic App (ARM template) | Orchestration |
 | **Backend** | Azure Functions (Python 3.11) | Validation logic |
-| **AI** | Claude 3 Haiku (Anthropic) | Language processing |
+| **AI** | Claude Haiku 4.5 (Anthropic) | Language processing (Word only) |
 | **API** | Microsoft Graph API | SharePoint integration |
 | **Auth** | Azure AD / MSAL | Authentication |
 | **Storage** | SharePoint Lists & Libraries | Data persistence |
@@ -420,7 +432,7 @@ flowchart LR
 
 ## Version Information
 
-- **Current Version**: v4.2
-- **Last Updated**: November 2025
+- **Current Version**: v5.0
+- **Last Updated**: March 2026
 - **Python Version**: 3.11
 - **Azure Functions Runtime**: 4.x

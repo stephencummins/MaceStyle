@@ -8,7 +8,9 @@
 
 ## What This App Does
 
-MaceStyle is an automated document style checker for the Mace Control Centre. When a user uploads a Word (.docx) or Visio (.vsdx) file to a designated SharePoint document library, the system automatically validates it against the Mace Writing Style Guide — checking British English spelling, grammar, font consistency, and formatting — then uploads a corrected file and an HTML report back to SharePoint.
+MaceStyle is an automated document style checker for the Mace Control Centre. When a user uploads a document to a designated SharePoint document library, the system automatically validates it against the Mace Writing Style Guide — checking British English spelling, grammar, font consistency, and formatting — then uploads a corrected file and an HTML report back to SharePoint.
+
+**Supported formats:** Word (.docx, .doc, .docm), Excel (.xlsx, .xls, .xlsm), PowerPoint (.pptx, .ppt, .pptm), Visio (.vsdx, .vsd).
 
 The validation takes 5-15 seconds per document and runs serverlessly with no ongoing infrastructure management.
 
@@ -79,7 +81,7 @@ We will handle list/library creation and rule population once the site exists.
 - **No data persistence** - documents are processed in-memory and not stored outside SharePoint
 - **Secrets** are stored in Azure Function App Settings (encrypted at rest), never in code
 - **Audit trail** maintained in a SharePoint list (Validation Results)
-- **External API call** - text content is sent to Anthropic's Claude AI API (hosted in the US) for language correction. No files are stored by Anthropic. If this raises data residency concerns, we can disable AI rules and rely on rule-based validation only.
+- **External API call** - for Word documents only, text content is sent to Anthropic's Claude AI API (hosted in the US) for language correction. No files are stored by Anthropic. Excel, PowerPoint, and Visio use rule-based validation only (no AI). If data residency is a concern, AI can be disabled entirely.
 
 ---
 
@@ -103,7 +105,7 @@ Once the above resources are provisioned, we deploy the function code via Azure 
 func azure functionapp publish func-mace-validator-prod
 ```
 
-A Power Automate flow then connects the SharePoint document library to the Azure Function (configured by us, not by the Azure admin).
+A Logic App (deployed via ARM template) connects the SharePoint document library to the Azure Function. The ARM template is included in the repo at `infra/logic-app.json`. An Azure DevOps CI/CD pipeline (`azure-pipelines.yml`) automates future deployments.
 
 ---
 
@@ -119,4 +121,4 @@ For the Azure Admin:
 - [ ] Create SharePoint site `/sites/StyleValidation` (or confirm an existing site to use)
 - [ ] Grant the App Registration access to the SharePoint site (if site-scoped permissions are preferred over tenant-wide)
 
-Everything else (function deployment, SharePoint list setup, Power Automate flow, rule configuration) will be handled by me (Stephen Cummins).
+Everything else (function deployment, Logic App deployment, SharePoint list setup, rule configuration) will be handled by me (Stephen Cummins).

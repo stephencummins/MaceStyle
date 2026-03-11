@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Mace Style Validator now supports comprehensive validation for Microsoft Visio (.vsdx) files, including text style corrections, font standardization, and color consistency.
+The Mace Style Validator supports comprehensive validation for Microsoft Visio (.vsdx) files, including structural checks, font standardisation, and colour consistency. Hard-coded rules only — AI validation is disabled for Visio (diagram shape text produces too many false positives and text write-back can corrupt documents).
 
 ## Supported Validations
 
@@ -10,7 +10,7 @@ The Mace Style Validator now supports comprehensive validation for Microsoft Vis
 
 #### A. Shape Size Validation
 
-Standardize shape dimensions to ensure consistency across diagrams.
+Standardise shape dimensions to ensure consistency across diagrams.
 
 **Rule Configuration:**
 ```
@@ -92,7 +92,7 @@ Positions shapes at exact X,Y coordinates (format: `X,Y`).
 
 #### C. Page Dimensions Validation
 
-Standardize page sizes across all Visio diagrams.
+Standardise page sizes across all Visio diagrams.
 
 **Rule Configuration:**
 ```
@@ -115,22 +115,11 @@ Priority: 80
 
 **Location:** `__init__.py:848-897`
 
-### 2. Text Style Validation (AI-Powered)
+### 2. Text Style Validation (Disabled)
 
-All SharePoint rules with `UseAI: Yes` are applied to Visio shape text:
+> **Note:** AI-powered text validation has been disabled for Visio. Diagram shape text (short labels, connector text, etc.) produces too many false positives with AI, and writing corrected text back to shapes can corrupt the document. Text style rules (British English, contractions, symbols) are applied only to Word documents.
 
-- **British English spelling**: finalized → finalised, color → colour, etc.
-- **Contraction expansion**: can't → cannot, don't → do not
-- **Symbol replacement**: & → and, % → percent
-- **Number formatting**: 1000 → 1,000
-
-**How it works:**
-- Extracts text from all shapes recursively (including nested shapes)
-- Sends combined text to Claude AI for style corrections
-- Applies corrected text back to individual shapes
-- Preserves shape structure and formatting
-
-### 2. Font Validation
+### 3. Font Validation
 
 Standardizes fonts across all Visio shapes to ensure consistency.
 
@@ -153,7 +142,7 @@ Priority: 100
 
 **Location:** `__init__.py:604-676`
 
-### 3. Color Validation
+### 4. Color Validation
 
 Ensures consistent branding colors for both shape fills and text.
 
@@ -232,18 +221,13 @@ graph TD
     B --> C[Load VisioFile Object]
     C --> D{Rule Type?}
 
-    D -->|UseAI=Yes| E[Extract All Shape Text]
-    E --> F[Send to Claude AI]
-    F --> G[Apply Text Corrections]
-
     D -->|Font| H[Check Font Cells]
     H --> I[Set to Arial if needed]
 
     D -->|Color| J[Check fill_color/text_color]
     J --> K[Update colors if needed]
 
-    G --> L[Save Modified .vsdx]
-    I --> L
+    I --> L[Save Modified .vsdx]
     K --> L
 
     L --> M[Upload to SharePoint]
@@ -256,7 +240,7 @@ graph TD
 
 Here's a complete set of structural rules you can add to SharePoint:
 
-#### 1. Standardize Title Box Dimensions
+#### 1. Standardise Title Box Dimensions
 ```
 Title: Visio - Title Box Must Be 3"×1"
 RuleType: Size
@@ -282,7 +266,7 @@ Tolerance: 0.1
 Description: All header shapes must be within top 2 inches of page
 ```
 
-#### 3. Standardize Page Size
+#### 3. Standardise Page Size
 ```
 Title: Visio - Letter Landscape Only
 RuleType: PageDimensions
@@ -367,7 +351,7 @@ Navigate to: `SharePoint > Style Validation > Style Rules List`
 
 | Column | Value |
 |--------|-------|
-| Title | Visio - Standardize All Fonts |
+| Title | Visio - Standardise All Fonts |
 | RuleType | Font |
 | DocumentType | Visio |
 | CheckValue | AllTextFont |
@@ -386,13 +370,9 @@ Navigate to: `SharePoint > Style Validation > Style Rules List`
 - CheckValue: `ShapeTextColor`
 - ExpectedValue: `#000000` (black)
 
-### Step 4: Enable AI Validation
+### Note on AI Validation
 
-For text style corrections, set `UseAI: Yes` on language rules:
-- British English Spelling
-- Contraction Expansion
-- Symbol Replacement
-- Number Formatting
+AI validation is **disabled for Visio** — only hard-coded rules (Font, Color, Size, Position, PageDimensions) are applied. AI text corrections are enabled for Word documents only.
 
 ## Testing Visio Validation
 
@@ -412,12 +392,10 @@ For text style corrections, set `UseAI: Yes` on language rules:
 ### Expected Results
 
 After validation:
-- ✅ All text corrected for British English
-- ✅ All contractions expanded
-- ✅ All symbols replaced with words
-- ✅ All numbers properly formatted
 - ✅ All fonts set to Arial
-- ✅ All colors matching brand standards
+- ✅ All colours matching brand standards
+- ✅ Shape sizes standardised
+- ✅ Page dimensions corrected
 
 ### Validation Report
 
@@ -472,15 +450,9 @@ For advanced scenarios:
 3. Ensure shape is not locked/protected
 4. Review Application Insights logs
 
-### Text Corrections Not Applied
+### Text Corrections Not Available
 
-**Symptom:** AI corrections missing
-
-**Solutions:**
-1. Verify `ANTHROPIC_API_KEY` is set
-2. Check UseAI: Yes on relevant rules
-3. Ensure shape text is extractable
-4. Review Claude API response in logs
+AI text corrections are disabled for Visio. Text style rules (British English, contractions, symbols) apply only to Word documents.
 
 ## Performance Considerations
 
@@ -491,7 +463,7 @@ Typical Visio validation times:
 - **Medium diagrams** (10-50 shapes): 5-10 seconds
 - **Large diagrams** (100+ shapes): 10-20 seconds
 
-AI validation adds ~2-5 seconds regardless of size.
+AI validation is disabled for Visio, so processing is fast.
 
 ### Optimization Tips
 
@@ -502,16 +474,15 @@ AI validation adds ~2-5 seconds regardless of size.
 
 ## Code References
 
-| Feature | File | Lines |
-|---------|------|-------|
-| Main Visio validation | `__init__.py` | 417-540 |
-| Shape size validation | `__init__.py` | 678-746 |
-| Position validation | `__init__.py` | 748-846 |
-| Page dimensions validation | `__init__.py` | 848-897 |
-| Font checking | `__init__.py` | 604-676 |
-| Color checking | `__init__.py` | 547-602 |
-| Shape text extraction | `__init__.py` | 525-545 |
-| AI text validation | `__init__.py` | 446-501 |
+| Feature | File |
+|---------|------|
+| Main Visio validation | `visio_validator.py` |
+| Shape size validation | `visio_validator.py` (`_check_shape_size`) |
+| Position validation | `visio_validator.py` (`_check_position`) |
+| Page dimensions validation | `visio_validator.py` (`_check_page_dimensions`) |
+| Font checking | `visio_validator.py` (`_check_fonts`) |
+| Colour checking | `visio_validator.py` (`_check_colors`) |
+| Shape text extraction | `visio_validator.py` (`_extract_shape_texts`) |
 
 ## Future Enhancements
 
@@ -539,6 +510,6 @@ For issues with Visio validation:
 
 ---
 
-**Last Updated:** 2025-01-10
-**Version:** 1.0
-**Implemented in:** MaceStyleValidator v4.2+
+**Last Updated:** March 2026
+**Version:** 2.0
+**Implemented in:** MaceStyleValidator v5.0+

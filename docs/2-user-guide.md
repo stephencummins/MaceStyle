@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Mace Style Validator automatically checks your Word documents against the Mace Control Centre Writing Style Guide. It identifies issues and automatically fixes many common errors, ensuring consistent, professional documentation.
+The Mace Style Validator automatically checks your documents against the Mace Control Centre Writing Style Guide. It supports **Word**, **Excel**, **PowerPoint**, and **Visio** files. It identifies issues and automatically fixes many common errors, ensuring consistent, professional documentation.
 
 ---
 
@@ -30,7 +30,7 @@ The validator checks for:
 - Number formatting with commas (1000 → 1,000)
 
 ✅ **Font Consistency**
-- All text standardized to Arial
+- All text standardised to Arial
 - Consistent heading fonts
 
 ---
@@ -80,23 +80,28 @@ Your document will show:
 | Column | Description | Example |
 |--------|-------------|---------|
 | **Name** | Document filename | `Project_Report.docx` |
-| **ValidationStatus** | Current status | 🟢 Passed / 🔴 Failed |
+| **ValidationStatus** | Current status | 🟢 Passed / 🟡 Review Required / 🔴 Failed |
 | **ValidationResultLink** | Link to detailed results | 📋 View Validation Result |
 | **Modified** | Last validation date | 11/08/2025 8:42 PM |
 
 ### Status Meanings
 
 🟢 **Passed**
-- All issues were automatically fixed
+- All issues were automatically fixed (or no issues found)
 - Document meets style guide requirements
 - Safe to distribute
+
+🟡 **Review Required**
+- Some issues were fixed but others remain
+- Review the HTML report for details
+- Manual corrections may be needed
 
 🟡 **Validating...**
 - Validation in progress
 - Wait a few seconds
 
 🔴 **Failed**
-- Some issues couldn't be fixed automatically
+- Issues were found but none could be fixed automatically
 - Review the HTML report for details
 - Manual corrections needed
 
@@ -155,13 +160,14 @@ Lists all problems found (including those fixed):
 ⚠ Found 8 style violations
 ```
 
-### Report Color Coding
+### Report Colour Coding
 
-| Color | Meaning |
+| Colour | Meaning |
 |-------|---------|
 | 🟢 Green | Successfully fixed |
 | 🔴 Red/Pink | Issue detected (may or may not be fixed) |
-| 🟣 Purple | Status badge (Passed/Failed) |
+| 🟣 Purple | Status badge (Passed/Review Required/Failed) |
+| 🟡 Amber | Review Required status |
 
 ---
 
@@ -185,7 +191,7 @@ Lists all problems found (including those fixed):
 | **Title** | "Validation: {filename}" |
 | **FileName** | Original document name |
 | **ValidationDate** | When validated |
-| **Status** | Passed / Failed |
+| **Status** | Passed / Review Required / Failed |
 | **IssuesFound** | Count of problems detected |
 | **IssuesFixed** | Count of auto-fixes |
 | **ReportLink** | Link to detailed HTML report |
@@ -211,7 +217,7 @@ When issues are detected and `AutoFix = Yes`:
 
 2. **Fixes are applied**
    - Text corrections (spelling, grammar)
-   - Font standardization
+   - Font standardisation
    - Symbol replacements
 
 3. **Document is saved**
@@ -334,8 +340,8 @@ When `AutoFix = No` or issues can't be corrected:
 - Needed for backup/restore
 
 ❌ **Don't upload unsupported formats**
-- Only `.docx` and `.doc` supported
-- Not `.pdf`, `.txt`, or other formats
+- Supported: Word (.docx, .doc, .docm, .dotx, .dotm), Excel (.xlsx, .xls, .xlsm), PowerPoint (.pptx, .ppt, .pptm, .potx, .potm), Visio (.vsdx, .vsd)
+- Not supported: .pdf, .txt, or other formats
 
 ❌ **Don't edit during validation**
 - Wait for "Validating..." to complete
@@ -352,13 +358,13 @@ When `AutoFix = No` or issues can't be corrected:
 ### Problem: Validation not triggering
 
 **Possible causes:**
-1. Wrong file format (not .docx/.doc)
-2. Power Automate flow disabled
+1. Wrong file format (unsupported extension)
+2. Logic App / Power Automate flow disabled
 3. Permissions issue
 
 **Solutions:**
-- Verify file extension is `.docx`
-- Contact admin to check flow status
+- Verify file extension is supported (.docx, .xlsx, .pptx, .vsdx, etc.)
+- Contact admin to check Logic App / flow status
 - Ensure you have edit permissions
 
 ---
@@ -533,7 +539,8 @@ Include:
 
 | Version | Date | Changes |
 |---------|------|---------|
-| v4.2 | Nov 2025 | Current version with enhanced HTML reports |
+| v5.0 | Mar 2026 | Multi-format support (Word, Excel, PowerPoint, Visio), three-way status, Logic App, DevOps CI/CD |
+| v4.2 | Nov 2025 | Enhanced HTML reports |
 | v3.3 | Nov 2025 | Added AI validation and Validation Results list |
 | v2.0 | Oct 2025 | Added British English rules |
 | v1.0 | Sep 2025 | Initial release with font validation |

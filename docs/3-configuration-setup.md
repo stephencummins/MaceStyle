@@ -6,7 +6,7 @@ Before beginning setup, ensure you have:
 
 - [ ] **Azure Subscription** with Owner or Contributor permissions
 - [ ] **Microsoft 365 Tenant** with SharePoint Online
-- [ ] **Power Platform** admin access
+- [ ] **Azure subscription** access (for Logic App deployment)
 - [ ] **Azure AD** admin access for app registration
 - [ ] **Anthropic API Key** (Claude AI)
 - [ ] **Development tools**:
@@ -140,7 +140,7 @@ This app will authenticate the Azure Function to access SharePoint.
 3. **Fund your account**
    - Add billing information
    - Add credits (recommended: $10 minimum)
-   - Claude 3 Haiku costs ~$0.01 per document
+   - Claude Haiku 4.5 costs ~$0.01 per document (Word only)
 
 ---
 
@@ -196,7 +196,10 @@ This app will authenticate the Azure Function to access SharePoint.
      ```
      Word
      Visio
+     Excel
+     PowerPoint
      Both
+     All
      ```
    - Default: Word
 
@@ -263,8 +266,8 @@ This app will authenticate the Azure Function to access SharePoint.
    - Choices:
      ```
      Passed
+     Review Required
      Failed
-     Warning
      ```
    - Default: (none)
 
@@ -283,13 +286,11 @@ This app will authenticate the Azure Function to access SharePoint.
    - Extract ID from URL: `List={GUID}`
    - Or run: `python3 inspect_validation_results.py`
 
-   **Note:** List ID is already hardcoded in the code as:
-   ```python
-   list_id = "d4f4cc72-7f68-4009-a1eb-e86d9e67a4dd"
-   ```
+   **Note:** List IDs are configurable via environment variables:
+   - `SHAREPOINT_VALIDATION_RESULTS_ID` — GUID of the Validation Results list
+   - `SHAREPOINT_DOC_LIBRARY_ID` — GUID of the Document Library
 
-   **If your list ID is different**, update in:
-   - `MaceStyleValidator/ValidateDocument/sharepoint_results.py` (line 35)
+   Set these in Azure Function App Settings for production.
 
 ---
 
@@ -305,14 +306,18 @@ This app will authenticate the Azure Function to access SharePoint.
    - Type: Choice
    - Choices:
      ```
+     Not Validated
+     Validate Now
      Validating...
      Passed
+     Review Required
      Failed
      ```
-   - Default: (none)
-   - Color coding (optional):
+   - Default: Not Validated
+   - Colour coding (optional):
      - Validating... = Yellow
      - Passed = Green
+     - Review Required = Amber
      - Failed = Red
 
    **Column 2: ValidationResultLink**
@@ -426,130 +431,56 @@ cd MaceStyle/MaceStyleValidator
 
 ---
 
-## Part 4: Power Automate Setup
+## Part 4: Logic App Setup (Replaces Power Automate)
 
-### 4.1 Create Flow
+An ARM template is provided at `infra/logic-app.json` that deploys a Consumption Logic App. This is preferred over Power Automate for production as it lives in the Azure subscription and can be deployed via ARM/DevOps.
 
-1. **Navigate to Power Automate**
-   - Go to: https://make.powerautomate.com
-   - Sign in
+### 4.1 Deploy Logic App
 
-2. **Create automated cloud flow**
-   - Click **Create** → **Automated cloud flow**
-   - **Flow name:** `Document Style Validation`
-   - **Trigger:** "When a file is created or modified (properties only)"
-   - Click **Create**
-
-### 4.2 Configure Trigger
-
-**Trigger: When a file is created or modified (properties only)**
-
-Settings:
-```
-Site Address: https://[tenant].sharepoint.com/sites/StyleValidation
-Library Name: Documents
+```bash
+az deployment group create \
+  --resource-group rg-macestyle \
+  --template-file infra/logic-app.json \
+  --parameters infra/logic-app.parameters.json \
+  --parameters functionAppKey="<function-host-key>" \
+  --parameters sharepointDocLibraryId="<library-guid>"
 ```
 
-**Important:** Use "properties only" version to avoid file content in trigger!
+### 4.2 Authorise SharePoint Connection
 
-### 4.3 Add Actions
+After deployment:
+1. Go to Azure Portal → Resource Group → API Connections → `sharepointonline`
+2. Click **Edit API connection**
+3. Click **Authorize** and sign in with a SharePoint account
+4. Click **Save**
 
-**Action 1: Get file properties**
-- **Action:** SharePoint - Get file properties
-- **Site Address:** [Same as trigger]
-- **Library Name:** [Same as trigger]
-- **Id:** `triggerBody()?['ID']` (from dynamic content)
+### 4.3 Logic App Flow
 
-**Action 2: Get file content**
-- **Action:** SharePoint - Get file content
-- **Site Address:** [Same as trigger]
-- **File Identifier:** Select **Identifier** from Get file properties
+The Logic App:
+1. Triggers on file create/modify in the SharePoint Document Library
+2. Filters to supported file types (.docx, .xlsx, .pptx, .vsdx, etc.)
+3. Sets ValidationStatus to "Validating..."
+4. Gets file content and base64-encodes it
+5. Calls the Function App (`POST /api/ValidateDocument`) with 10-minute timeout
+6. Parses the JSON response
+7. If fixes were applied, uploads the corrected file back
+8. Updates ValidationStatus, Description, ValidationReport, ValidationResultLink, and LastValidated
 
-**Action 3: Compose - Encode File Content**
-- **Action:** Data Operation - Compose
-- **Inputs:** `base64(body('Get_file_content'))`
+### 4.4 Azure DevOps CI/CD (Optional)
 
-**Action 4: HTTP - Call Azure Function**
-- **Action:** HTTP
-- **Method:** POST
-- **URI:** `https://func-mace-validator-prod.azurewebsites.net/api/validatedocument`
-- **Headers:**
-  ```
-  Content-Type: application/json
-  x-functions-key: [Your Function Host Key]
-  ```
-- **Body:**
-  ```json
-  {
-    "itemId": @{triggerBody()?['ID']},
-    "fileContent": "@{outputs('Encode_File_Content')}",
-    "fileName": "@{body('Get_file_properties')?['{FilenameWithExtension}']}",
-    "fileUrl": "@{body('Get_file_properties')?['{Path}']}"
-  }
-  ```
+An `azure-pipelines.yml` is provided in the repo root for automated deployment:
+- Build + test on push to `main`
+- Deploy to dev (automatic)
+- Deploy to prod (with approval gate)
+- Deploy Logic App ARM template
 
-**Action 5: Parse JSON**
-- **Action:** Data Operation - Parse JSON
-- **Content:** `body('HTTP')` (from dynamic content)
-- **Schema:**
-  ```json
-  {
-    "type": "object",
-    "properties": {
-      "status": {"type": "string"},
-      "issuesFound": {"type": "integer"},
-      "issuesFixed": {"type": "integer"},
-      "reportUrl": {"type": ["string", "null"]},
-      "validationResultUrl": {"type": ["string", "null"]},
-      "reportLink": {
-        "type": ["object", "null"],
-        "properties": {
-          "Description": {"type": "string"},
-          "Url": {"type": "string"}
-        }
-      },
-      "validationResultLink": {
-        "type": ["object", "null"],
-        "properties": {
-          "Description": {"type": "string"},
-          "Url": {"type": "string"}
-        }
-      },
-      "fixedFileContent": {"type": "string"}
-    }
-  }
-  ```
+See `docs/prod-deployment-guide.md` for DevOps setup instructions.
 
-**Action 6 (Optional): Update item - Add result link**
-- **Action:** SharePoint - Update item
-- **Site Address:** [Same as trigger]
-- **List Name:** Documents
-- **Id:** `triggerBody()?['ID']`
-- **ValidationResultLink:** `body('Parse_JSON')?['validationResultLink']`
+### 4.5 Test
 
-### 4.4 Configure Error Handling
-
-1. **Add parallel branch for HTTP action**
-   - If HTTP fails, update status to "Failed"
-
-2. **Configure retry policy**
-   - HTTP action → Settings → Retry Policy
-   - **Type:** Fixed Interval
-   - **Count:** 3
-   - **Interval:** PT10S
-
-### 4.5 Test Flow
-
-1. **Save flow**
-2. **Upload test document** to SharePoint library
-3. **Check flow run history**
-   - Should see successful run
-   - Check each action's outputs
-
-4. **Verify results**
-   - Document status updated
-   - HTML report created
-   - Validation Results list entry created
+1. Upload a test document to the SharePoint library
+2. Check Logic App run history in Azure Portal
+3. Verify document status updated, report generated, and results saved
 
 ---
 
@@ -771,7 +702,7 @@ Example:
 
 ### Common Issues
 
-#### Issue 1: "401 Unauthorized" errors
+#### Issue 1: "401 Unauthorised" errors
 
 **Cause:** App registration permissions not granted
 
@@ -784,12 +715,12 @@ Example:
 
 #### Issue 2: Validation not triggering
 
-**Cause:** Power Automate flow disabled or broken
+**Cause:** Logic App disabled or broken
 
 **Solution:**
-1. Power Automate → Check flow status
+1. Azure Portal → Logic App → Check run history
 2. Review last run error
-3. Test with manual trigger
+3. Check SharePoint API connection authorisation
 
 ---
 
@@ -820,11 +751,8 @@ Example:
 **Cause:** Missing fileUrl parameter
 
 **Solution:**
-1. Check Power Automate flow body
-2. Ensure fileUrl is included:
-   ```json
-   "fileUrl": "@{body('Get_file_properties')?['{Path}']}"
-   ```
+1. Check Logic App request body includes fileUrl
+2. Review Logic App run history for the specific run
 
 ---
 
@@ -910,7 +838,7 @@ Before going live, verify:
 - [ ] SharePoint lists created with all columns
 - [ ] Style Rules populated
 - [ ] Document library configured with custom columns
-- [ ] Power Automate flow created and enabled
+- [ ] Logic App deployed and SharePoint connection authorised
 - [ ] Test document validates successfully
 - [ ] HTML report generates and uploads
 - [ ] Validation Results list populates
@@ -927,7 +855,7 @@ Before going live, verify:
 ### Official Documentation
 - [Azure Functions Python](https://docs.microsoft.com/azure/azure-functions/functions-reference-python)
 - [Microsoft Graph API](https://docs.microsoft.com/graph/overview)
-- [Power Automate](https://docs.microsoft.com/power-automate/)
+- [Azure Logic Apps](https://docs.microsoft.com/azure/logic-apps/)
 - [Claude API](https://docs.anthropic.com/claude/reference/getting-started-with-the-api)
 
 ### Community
@@ -935,7 +863,7 @@ Before going live, verify:
 - Power Automate Community: https://powerusers.microsoft.com/
 
 ### Version Information
-- **Last Updated:** November 2025
-- **Version:** 4.2
+- **Last Updated:** March 2026
+- **Version:** 5.0
 - **Author:** [Your Name/Team]
 - **License:** [Your License]
