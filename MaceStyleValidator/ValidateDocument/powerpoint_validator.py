@@ -2,7 +2,6 @@
 import re
 import logging
 from pptx import Presentation
-from .ai_client import call_claude
 
 
 def validate_powerpoint_document(file_stream, rules):
@@ -18,40 +17,10 @@ def validate_powerpoint_document(file_stream, rules):
     ai_rules = [r for r in pptx_rules if r.get('use_ai', False)]
     hard_coded_rules = [r for r in pptx_rules if not r.get('use_ai', False)]
 
-    logging.info(f"AI rules: {len(ai_rules)}, Hard-coded rules: {len(hard_coded_rules)}")
+    logging.info(f"Hard-coded rules: {len(hard_coded_rules)} (AI rules skipped for PowerPoint)")
 
-    # Extract all text with references for write-back
-    text_refs = _extract_text_refs(prs)
-    logging.info(f"Extracted text from {len(text_refs)} text runs across {len(prs.slides)} slides")
-
-    # AI-powered corrections with write-back
-    if ai_rules and text_refs:
-        try:
-            combined_text = "\n\n".join([tr['text'] for tr in text_refs if tr['text'].strip()])
-            if combined_text.strip():
-                result = call_claude(ai_rules, combined_text)
-                if result and result['changes_made'] > 0:
-                    # Report AI issues but don't apply text changes to PowerPoint
-                    # (splitting corrected text back to runs is unreliable)
-                    issues.append({
-                        'rule_name': 'AI Style Corrections',
-                        'rule_type': 'AI',
-                        'description': f"Found {result['changes_made']} style violations requiring manual review",
-                        'location': 'Presentation-wide',
-                        'priority': 3
-                    })
-                    logging.info(f"Claude found {result['changes_made']} PowerPoint style issues (report only, no auto-fix)")
-        except Exception as e:
-            logging.error(f"Claude validation failed for PowerPoint: {e}")
-            issues.append({
-                'rule_name': 'AI Validation',
-                'rule_type': 'AI',
-                'description': f"AI validation failed: {e}",
-                'location': 'N/A',
-                'priority': 1
-            })
-
-    # Hard-coded rules
+    # Hard-coded rules only — AI validation is skipped for PowerPoint
+    # (AI is designed for prose; slide text produces too many false positives)
     for rule in hard_coded_rules:
         result = None
         if rule['rule_type'] == 'Font':

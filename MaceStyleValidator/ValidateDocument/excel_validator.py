@@ -1,7 +1,6 @@
 """Excel document (.xlsx) validation with AI write-back"""
 import re
 import logging
-from .ai_client import call_claude
 
 
 def _normalise_issue(item, rule=None):
@@ -42,51 +41,10 @@ def validate_excel_document(file_stream, rules):
     ai_rules = [r for r in excel_rules if r.get('use_ai', False)]
     hard_coded_rules = [r for r in excel_rules if not r.get('use_ai', False)]
 
-    logging.info(f"AI rules: {len(ai_rules)}, Hard-coded rules: {len(hard_coded_rules)}")
+    logging.info(f"Hard-coded rules: {len(hard_coded_rules)} (AI rules skipped for Excel)")
 
-    # AI-powered corrections with write-back
-    if ai_rules:
-        try:
-            # Track cells alongside their text for write-back
-            cell_data = []
-            for sheet_name in wb.sheetnames:
-                ws = wb[sheet_name]
-                for row in ws.iter_rows():
-                    for cell in row:
-                        if cell.value and isinstance(cell.value, str) and cell.value.strip():
-                            cell_data.append({
-                                'cell': cell,
-                                'text': cell.value,
-                                'ref': f"{sheet_name}!{cell.coordinate}"
-                            })
-
-            if cell_data:
-                combined_text = "\n\n".join([cd['text'] for cd in cell_data])
-                result = call_claude(ai_rules, combined_text)
-
-                if result and result['changes_made'] > 0:
-                    # Report AI issues but don't apply text changes to Excel
-                    # (splitting corrected text back to cells is unreliable)
-                    issues.append({
-                        'rule_name': 'AI Style Corrections',
-                        'rule_type': 'AI',
-                        'description': f"Found {result['changes_made']} style violations requiring manual review",
-                        'location': 'Workbook-wide',
-                        'priority': 3
-                    })
-                    logging.info(f"Claude found {result['changes_made']} Excel style issues (report only, no auto-fix)")
-
-        except Exception as e:
-            logging.error(f"Claude validation failed for Excel: {e}")
-            issues.append({
-                'rule_name': 'AI Validation',
-                'rule_type': 'AI',
-                'description': f"AI validation failed: {e}",
-                'location': 'N/A',
-                'priority': 1
-            })
-
-    # Hard-coded rules
+    # Hard-coded rules only — AI validation is skipped for Excel
+    # (AI is designed for prose; spreadsheet cell text produces too many false positives)
     for rule in hard_coded_rules:
         result = None
         if rule['rule_type'] == 'Font':
