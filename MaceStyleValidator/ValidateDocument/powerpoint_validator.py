@@ -43,9 +43,7 @@ def validate_powerpoint_document(file_stream, rules):
             result_changes = result.get('changes', [])
             for item in result.get('fixes', []):
                 if isinstance(item, dict) and 'rule_name' in item:
-                    if result_changes:
-                        item['changes'] = result_changes
-                    fixes_applied.append(item)
+                    fix_dict = dict(item)
                 else:
                     fix_dict = {
                         'rule_name': rule.get('title', 'Unknown'),
@@ -54,9 +52,9 @@ def validate_powerpoint_document(file_stream, rules):
                         'fixed_value': str(item),
                         'location': 'Presentation-wide'
                     }
-                    if result_changes:
-                        fix_dict['changes'] = result_changes
-                    fixes_applied.append(fix_dict)
+                if result_changes:
+                    fix_dict['changes'] = result_changes
+                fixes_applied.append(fix_dict)
 
     logging.info(f"PowerPoint validation complete. Issues: {len(issues)}, Fixes: {len(fixes_applied)}")
     return {'document': prs, 'issues': issues, 'fixes_applied': fixes_applied}
