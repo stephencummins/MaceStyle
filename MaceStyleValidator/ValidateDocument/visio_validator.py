@@ -3,7 +3,6 @@ import os
 import logging
 import tempfile
 from vsdx import VisioFile
-from .ai_client import call_claude
 
 
 def validate_visio_document(file_stream, rules):
@@ -27,44 +26,11 @@ def validate_visio_document(file_stream, rules):
     ai_rules = [r for r in visio_rules if r.get('use_ai', False)]
     hard_coded_rules = [r for r in visio_rules if not r.get('use_ai', False)]
 
-    logging.info(f"AI rules: {len(ai_rules)}, Hard-coded rules: {len(hard_coded_rules)}")
+    logging.info(f"Hard-coded rules: {len(hard_coded_rules)} (AI rules skipped for Visio)")
 
-    # Extract all text from Visio shapes
-    shape_texts = []
-    for page in visio.pages:
-        shape_texts.extend(_extract_shape_texts(page, page.child_shapes))
-
-    logging.info(f"Extracted text from {len(shape_texts)} shapes")
-
-    # AI-powered corrections
-    if ai_rules and shape_texts:
-        try:
-            combined_text = "\n\n".join([st['text'] for st in shape_texts if st['text'].strip()])
-            if combined_text.strip():
-                result = call_claude(ai_rules, combined_text)
-                if result and result['changes_made'] > 0:
-                    # Report AI issues but don't apply text changes to Visio
-                    # (splitting corrected text back to shapes is unreliable
-                    #  and can corrupt the document)
-                    issues.append({
-                        'rule_name': 'AI Style Corrections',
-                        'rule_type': 'AI',
-                        'description': f"Found {result['changes_made']} style violations requiring manual review",
-                        'location': 'Document-wide',
-                        'priority': 3
-                    })
-                    logging.info(f"Claude found {result['changes_made']} Visio style issues (report only, no auto-fix)")
-        except Exception as e:
-            logging.error(f"Claude validation failed for Visio: {e}")
-            issues.append({
-                'rule_name': 'AI Validation',
-                'rule_type': 'AI',
-                'description': f"AI validation failed: {e}",
-                'location': 'N/A',
-                'priority': 1
-            })
-
-    # Hard-coded rules
+    # Hard-coded rules only — AI validation is skipped for Visio
+    # (AI is designed for prose; diagram shape text produces too many false positives
+    #  and text write-back corrupts the document)
     for rule in hard_coded_rules:
         result = None
         if rule['rule_type'] == 'Color':
