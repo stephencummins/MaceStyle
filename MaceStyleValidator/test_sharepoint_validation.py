@@ -81,7 +81,7 @@ def main():
             fixed_stream.seek(0)
 
             upload_path = "/test_FIXED.docx"
-            web_url = upload_file(token, fixed_stream, upload_path)
+            web_url, _ = upload_file(token, fixed_stream, upload_path)
             print(f"   ✅ Fixed document uploaded")
             print(f"      URL: {web_url}")
 

@@ -1,0 +1,122 @@
+trigger:
+  branches:
+    include:
+      - main
+
+variables:
+  azureSubscription: 'MaceStyle-ServiceConnection'  # Azure DevOps service connection name
+  functionAppName: 'func-mace-validator-prod'
+  resourceGroupName: 'rg-mace-style-validator'
+  workingDirectory: 'MaceStyleValidator'
+  pythonVersion: '3.11'
+
+stages:
+  - stage: Build
+    displayName: 'Build & Test'
+    jobs:
+      - job: Build
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '$(pythonVersion)'
+            displayName: 'Use Python $(pythonVersion)'
+
+          - script: |
+              cd $(workingDirectory)
+              python -m pip install --upgrade pip
+              pip install -r requirements.txt
+            displayName: 'Install dependencies'
+
+          - script: |
+              cd $(workingDirectory)
+              python -m pytest test_all_formats.py -v --tb=short
+            displayName: 'Run tests'
+
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: '$(workingDirectory)'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+              replaceExistingArchive: true
+            displayName: 'Archive Function App'
+
+          - publish: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
+            artifact: 'functionapp'
+            displayName: 'Publish artifact'
+
+  - stage: DeployDev
+    displayName: 'Deploy to Dev'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy
+        environment: 'dev'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureFunctionApp@2
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    appType: 'functionAppLinux'
+                    appName: 'func-mace-validator-dev'
+                    package: '$(Pipeline.Workspace)/functionapp/$(Build.BuildId).zip'
+                    runtimeStack: 'PYTHON|3.11'
+                    deploymentMethod: 'zipDeploy'
+                  displayName: 'Deploy to Dev Function App'
+
+  - stage: DeployProd
+    displayName: 'Deploy to Prod'
+    dependsOn: DeployDev
+    condition: succeeded()
+    jobs:
+      - deployment: Deploy
+        environment: 'production'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: AzureFunctionApp@2
+                  inputs:
+                    azureSubscription: '$(azureSubscription)'
+                    appType: 'functionAppLinux'
+                    appName: '$(functionAppName)'
+                    package: '$(Pipeline.Workspace)/functionapp/$(Build.BuildId).zip'
+                    runtimeStack: 'PYTHON|3.11'
+                    deploymentMethod: 'zipDeploy'
+                  displayName: 'Deploy to Prod Function App'
+
+  - stage: DeployLogicApp
+    displayName: 'Deploy Logic App'
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: Deploy
+        environment: 'production'
+        pool:
+          vmImage: 'ubuntu-latest'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+
+                - task: AzureResourceManagerTemplateDeployment@3
+                  inputs:
+                    azureResourceManagerConnection: '$(azureSubscription)'
+                    subscriptionId: ''
+                    action: 'Create Or Update Resource Group'
+                    resourceGroupName: '$(resourceGroupName)'
+                    location: 'UK South'
+                    templateLocation: 'Linked artifact'
+                    csmFile: 'infra/logic-app.json'
+                    csmParametersFile: 'infra/logic-app.parameters.json'
+                    deploymentMode: 'Incremental'
+                  displayName: 'Deploy Logic App ARM template'

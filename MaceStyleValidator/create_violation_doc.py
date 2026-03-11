@@ -64,7 +64,7 @@ def main():
         doc.save(modified_stream)
         modified_stream.seek(0)
 
-        web_url = upload_file(token, modified_stream, "/test.docx")
+        web_url, _ = upload_file(token, modified_stream, "/test.docx")
         print(f"   ✅ Uploaded (overwrote original)")
         print(f"   URL: {web_url}")
 

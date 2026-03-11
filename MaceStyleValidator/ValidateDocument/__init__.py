@@ -8,7 +8,8 @@ from io import BytesIO
 
 from .config import get_graph_token
 from .sharepoint_client import (
-    get_site_id, fetch_validation_rules, download_file, upload_file, update_validation_status
+    get_site_id, fetch_validation_rules, download_file, upload_file,
+    update_validation_status, update_drive_item_fields
 )
 from .report import generate_report
 from .sharepoint_results import save_validation_result, update_document_metadata
@@ -103,7 +104,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # 7. Upload fixed file if fixes were applied
         if file_url and result['fixes_applied']:
             logging.info(f'Uploading fixed document ({len(result["fixes_applied"])} fixes)...')
-            upload_file(token, fixed_stream, file_url)
+            _web_url, _item_id = upload_file(token, fixed_stream, file_url)
         elif not file_url:
             logging.info('Skipping upload (no file URL)')
         else:
@@ -112,6 +113,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # 8. Generate and upload report
         report_html = generate_report(file_name, result['issues'], result['fixes_applied'])
         report_url = None
+        report_drive_item_id = None
 
         report_stream = BytesIO(report_html.encode('utf-8'))
         report_filename = f"{os.path.splitext(file_name)[0]}_ValidationReport.html"
@@ -122,7 +124,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             report_path = f"/Validation Reports/{report_filename}"
 
         try:
-            report_url = upload_file(token, report_stream, report_path)
+            report_url, report_drive_item_id = upload_file(token, report_stream, report_path)
             logging.info(f"Report uploaded: {report_url}")
         except Exception as e:
             logging.error(f"Failed to upload report: {e}")
@@ -138,6 +140,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 result_status = "Review Required"
             else:
                 result_status = "Failed"
+
+            # Update report file metadata (ValidationStatus + counts)
+            if report_drive_item_id:
+                try:
+                    update_drive_item_fields(token, report_drive_item_id, {
+                        "ValidationStatus": result_status,
+                        "IssuesFound": len(result['issues']),
+                        "IssuesFixed": len(result['fixes_applied'])
+                    })
+                except Exception as e:
+                    logging.warning(f"Could not update report metadata: {e}")
 
             validation_result_info = save_validation_result(
                 token=token,

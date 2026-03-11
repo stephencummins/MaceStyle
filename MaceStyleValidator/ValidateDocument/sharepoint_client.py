@@ -85,9 +85,23 @@ def upload_file(token, file_stream, target_path):
     response = requests.put(url, headers=headers, data=file_stream.read())
     response.raise_for_status()
 
-    web_url = response.json().get("webUrl")
+    resp_json = response.json()
+    web_url = resp_json.get("webUrl")
+    item_id = resp_json.get("id")
     logging.info(f"File uploaded: {web_url}")
-    return web_url
+    return web_url, item_id
+
+
+def update_drive_item_fields(token, drive_item_id, fields):
+    """Update list item fields on a drive item (e.g. ValidationStatus on a report file)"""
+    site_id = get_site_id(token)
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/drive/items/{drive_item_id}/listItem/fields"
+    response = requests.patch(url, headers=headers, json=fields)
+    if response.status_code >= 400:
+        logging.warning(f"Could not update drive item fields (HTTP {response.status_code}): {response.text}")
+    else:
+        logging.info(f"Drive item {drive_item_id} fields updated")
 
 
 def update_validation_status(token, item_id, status, report_url):

@@ -63,26 +63,61 @@ Add these in the Function App Configuration > Application Settings:
 
 *List IDs default to the dev tenant values. For production, get the list GUIDs from SharePoint (Site Settings > Site Contents > list settings URL contains the GUID).
 
-## 5. Power Automate Flow
+## 5. Logic App (replaces Power Automate)
 
-A **Power Automate flow** that:
+An ARM template is provided at `infra/logic-app.json` that deploys a **Consumption Logic App** replicating the Power Automate flow. This is preferable for production because it lives in the Azure subscription alongside the Function App and can be deployed via ARM/DevOps.
 
-1. **Triggers** when a document is uploaded or modified in the SharePoint Document Library
-2. **Gets the file content** (base64 encoded)
-3. **Calls the Function App** HTTP endpoint (`POST /api/ValidateDocument`) with JSON body:
+The Logic App:
+
+1. **Triggers** when a document is created or modified in the SharePoint Document Library
+2. **Filters** to supported file types (.docx, .xlsx, .pptx, .vsdx, etc.)
+3. **Sets** ValidationStatus to "Validating..."
+4. **Gets file content** and base64-encodes it
+5. **Calls the Function App** (`POST /api/ValidateDocument`) with JSON body:
    ```json
    {
      "itemId": "<SharePoint item ID>",
      "fileName": "<file name with extension>",
-     "fileContent": "<base64 encoded file content>"
+     "fileContent": "<base64 encoded file content>",
+     "fileUrl": "<server-relative path>"
    }
    ```
-4. **Parses the JSON response** (fields: `status`, `description`, `issuesFound`, `issuesFixed`, `reportUrl`)
-5. **Updates the document's ValidationStatus** column using the `status` field from the response
+6. **Parses the JSON response** (fields: `status`, `description`, `issuesFound`, `issuesFixed`, `reportUrl`, `fixedFileContent`)
+7. If fixes were applied, **uploads the corrected file** back to SharePoint
+8. **Updates** ValidationStatus, Description, ValidationReport, ValidationResultLink, and LastValidated columns
 
-Stephen can export the existing dev flow as a .zip for reference/import.
+### Deploying the Logic App
 
-## 6. Network / Firewall
+```bash
+az deployment group create \
+  --resource-group rg-mace-style-validator \
+  --template-file infra/logic-app.json \
+  --parameters infra/logic-app.parameters.json \
+  --parameters functionAppKey="<function-host-key>"
+```
+
+Fill in `functionAppKey` and `sharepointDocLibraryId` in the parameters file (or pass on the command line). After deployment, open the Logic App in the Azure Portal and **authorise the SharePoint connection** (API Connections > sharepointonline > Edit > Authorize).
+
+## 6. Azure DevOps CI/CD Pipeline
+
+An `azure-pipelines.yml` is provided in the repo root. It automates:
+
+- **Build**: Install deps, run tests, create deployment zip
+- **Deploy to Dev**: Deploys Function App to `func-mace-validator-dev`
+- **Deploy to Prod**: Deploys Function App to `func-mace-validator-prod` (requires approval)
+- **Deploy Logic App**: Deploys the ARM template to the resource group
+
+### Setup in Azure DevOps
+
+1. Create a **Service Connection** (type: Azure Resource Manager) named `MaceStyle-ServiceConnection` with access to the target subscription
+2. Create **Environments** named `dev` and `production` in Azure DevOps Pipelines > Environments
+3. Add an **Approval gate** on the `production` environment
+4. Import the pipeline from `azure-pipelines.yml`
+5. Update the variables at the top of the YAML if resource names differ
+
+Pushes to `main` trigger the full pipeline: build → dev → prod (with approval).
+
+## 7. Network / Firewall
 
 The Function App needs **outbound HTTPS access** to:
 
@@ -92,7 +127,7 @@ The Function App needs **outbound HTTPS access** to:
 | `api.anthropic.com` | Claude AI for style corrections |
 | `login.microsoftonline.com` | Azure AD authentication |
 
-## 7. Supported File Types
+## 8. Supported File Types
 
 The validator handles:
 
@@ -103,10 +138,10 @@ The validator handles:
 
 ## What Stephen Will Provide
 
-- The **code** (GitHub repo or zip deployment)
+- The **code** (GitHub repo — includes Function App, Logic App ARM template, and DevOps pipeline)
 - The `populate_style_rules.py` script to seed the Style Rules list with all validation rules
-- The Power Automate flow export (.zip)
-- Deployment via VS Code Azure Functions extension or `func azure functionapp publish`
+- ARM template + parameters for the Logic App (`infra/logic-app.json`)
+- Azure DevOps pipeline definition (`azure-pipelines.yml`)
 
 ---
 
