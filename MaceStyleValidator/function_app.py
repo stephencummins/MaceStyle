@@ -83,6 +83,13 @@ def TestSharePoint(req: func.HttpRequest) -> func.HttpResponse:
             status_code=500
         )
 
+@app.route(route="MaceyBot", methods=["GET", "POST"], auth_level=func.AuthLevel.ANONYMOUS)
+async def MaceyBotEndpoint(req: func.HttpRequest) -> func.HttpResponse:
+    """Teams bot messaging endpoint — powered by Claude API"""
+    logging.info("=== MaceyBot endpoint hit ===")
+    from MaceyBot import main as macey_main
+    return await macey_main(req)
+
 @app.route(route="ListDocuments", methods=["GET"])
 def ListDocuments(req: func.HttpRequest) -> func.HttpResponse:
     """List documents in SharePoint library"""

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "7f1dd911-bf6f-4133-9d8d-d508e41b6c06",
+  "developer": {
+    "name": "Mace Group",
+    "websiteUrl": "https://www.macegroup.com",
+    "privacyUrl": "https://www.macegroup.com/privacy",
+    "termsOfUseUrl": "https://www.macegroup.com/terms"
+  },
+  "name": {
+    "short": "Macey",
+    "full": "Macey — PDMS Site Creation Assistant"
+  },
+  "description": {
+    "short": "Request new PDMS SharePoint sites via chat",
+    "full": "Macey helps you create new PDMS SharePoint sites by gathering requirements conversationally and submitting requests for approval. Powered by Claude AI."
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "accentColor": "#CF0A2C",
+  "bots": [
+    {
+      "botId": "7f1dd911-bf6f-4133-9d8d-d508e41b6c06",
+      "scopes": ["personal", "team"],
+      "supportsFiles": false,
+      "isNotificationOnly": false,
+      "commandLists": [
+        {
+          "scopes": ["personal", "team"],
+          "commands": [
+            {
+              "title": "Create a new PDMS site",
+              "description": "Start a new PDMS SharePoint site creation request"
+            },
+            {
+              "title": "Help",
+              "description": "Learn what Macey can do"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": ["identity", "messageTeamMembers"],
+  "validDomains": []
+}
