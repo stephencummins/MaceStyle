@@ -8,7 +8,7 @@ Before beginning setup, ensure you have:
 - [ ] **Microsoft 365 Tenant** with SharePoint Online
 - [ ] **Azure subscription** access (for Logic App deployment)
 - [ ] **Azure AD** admin access for app registration
-- [ ] **Anthropic API Key** (Claude AI)
+- [ ] **Anthropic API Key** (Claude AI) — *optional, AI validation currently disabled*
 - [ ] **Development tools**:
   - Python 3.11+
   - Azure Functions Core Tools v4
@@ -112,7 +112,7 @@ This app will authenticate the Azure Function to access SharePoint.
    Value: https://[yourtenant].sharepoint.com/sites/StyleValidation
 
    Name: ANTHROPIC_API_KEY
-   Value: [Your Claude API key - get from console.anthropic.com]
+   Value: [Your Claude API key - get from console.anthropic.com] (optional — AI currently disabled)
    ```
 
    - Click **Save** → **Continue**
@@ -124,7 +124,9 @@ This app will authenticate the Azure Function to access SharePoint.
 
 ---
 
-### 1.3 Get Anthropic API Key
+### 1.3 Get Anthropic API Key (Optional)
+
+> **Note:** Claude AI validation is currently disabled via the `ENABLE_CLAUDE_AI` flag. This step is only needed if you plan to re-enable AI validation.
 
 1. **Sign up for Anthropic**
    - Go to: https://console.anthropic.com
@@ -736,6 +738,8 @@ Example:
 ---
 
 #### Issue 4: Claude API errors
+
+> **Note:** Claude AI is currently disabled. This section only applies if `ENABLE_CLAUDE_AI = True`.
 
 **Cause:** Invalid API key or insufficient credits
 

@@ -2,7 +2,9 @@
 
 ## System Overview
 
-The Mace Style Validator is an automated document validation system that enforces the Mace Control Centre Writing Style Guide using Azure Functions, Claude AI, and SharePoint.
+The Mace Style Validator is an automated document validation system that enforces the Mace Control Centre Writing Style Guide using Azure Functions and SharePoint.
+
+> **Note:** Claude AI integration is currently disabled via the `ENABLE_CLAUDE_AI` flag in `config.py`. All hard-coded validation rules continue to run. To re-enable AI-powered style corrections, set `ENABLE_CLAUDE_AI = True`.
 
 ## Architecture Diagram
 
@@ -233,8 +235,10 @@ flowchart TD
 
 ---
 
-### 6. Claude AI Integration (Word Only)
+### 6. Claude AI Integration (Currently Disabled)
 **Purpose:** Advanced language validation for Word documents
+
+> **Status:** Disabled. Set `ENABLE_CLAUDE_AI = True` in `config.py` to re-enable.
 
 **Model:** Claude Haiku 4.5 (fast, cost-effective)
 
@@ -423,7 +427,7 @@ flowchart LR
 | **Frontend** | SharePoint Online | Document storage, UI |
 | **Workflow** | Logic App (ARM template) | Orchestration |
 | **Backend** | Azure Functions (Python 3.11) | Validation logic |
-| **AI** | Claude Haiku 4.5 (Anthropic) | Language processing (Word only) |
+| **AI** | Claude Haiku 4.5 (Anthropic) | Language processing (currently disabled) |
 | **API** | Microsoft Graph API | SharePoint integration |
 | **Auth** | Azure AD / MSAL | Authentication |
 | **Storage** | SharePoint Lists & Libraries | Data persistence |

@@ -3,7 +3,7 @@ import os
 import json
 import logging
 from anthropic import Anthropic
-from .config import CLAUDE_MODEL, CLAUDE_MAX_TOKENS, CLAUDE_TEMPERATURE
+from .config import ENABLE_CLAUDE_AI, CLAUDE_MODEL, CLAUDE_MAX_TOKENS, CLAUDE_TEMPERATURE
 
 
 def build_dynamic_prompt(ai_rules, document_text):
@@ -44,6 +44,10 @@ def call_claude(ai_rules, document_text):
 
     Returns dict with 'corrected_text' and 'changes_made', or None if no API key.
     """
+    if not ENABLE_CLAUDE_AI:
+        logging.info("Claude AI validation is disabled (ENABLE_CLAUDE_AI=False)")
+        return None
+
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         logging.warning("ANTHROPIC_API_KEY not set - skipping AI validation")

@@ -12,26 +12,14 @@ The Mace Style Validator automatically checks your documents against the Mace Co
 
 The validator checks for:
 
-✅ **British English Spelling**
-- finalized → finalised
-- color → colour
-- center → centre
-- organize → organise
-- And 20+ more...
-
-✅ **Grammar Rules**
-- Contractions expanded (can't → cannot, don't → do not)
-- Proper apostrophe usage
-- No apostrophes in plurals
-
-✅ **Punctuation & Symbols**
-- Ampersands replaced (& → and)
-- Percent spelled out (% → percent)
-- Number formatting with commas (1000 → 1,000)
-
 ✅ **Font Consistency**
 - All text standardised to Arial
 - Consistent heading fonts
+
+✅ **Hard-coded Style Rules**
+- Rules fetched from SharePoint and applied directly
+
+> **Note:** AI-powered corrections (British English spelling, contraction expansion, symbol replacement) are temporarily disabled and may be re-enabled in a future update.
 
 ---
 
@@ -558,6 +546,7 @@ Include:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| v5.2 | Mar 2026 | Claude AI disabled via feature flag (can be re-enabled) |
 | v5.1 | Mar 2026 | Before/after diff view in HTML reports — collapsible per-rule text change details |
 | v5.0 | Mar 2026 | Multi-format support (Word, Excel, PowerPoint, Visio), three-way status, Logic App, DevOps CI/CD |
 | v4.2 | Nov 2025 | Enhanced HTML reports |

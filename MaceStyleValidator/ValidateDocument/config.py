@@ -4,6 +4,8 @@ import msal
 import requests
 
 # Claude AI configuration
+# Toggle AI validation on/off. Set to True to re-enable Claude API calls.
+ENABLE_CLAUDE_AI = False
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 CLAUDE_MAX_TOKENS = 8192
 CLAUDE_TEMPERATURE = 0.3
