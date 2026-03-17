@@ -56,19 +56,20 @@ And 20+ more British spellings!
 ## 🏗️ Architecture
 
 ```mermaid
+---
+title: MaceStyle System Architecture
+---
 graph LR
-    A[SharePoint] -->|Trigger| B[Power Automate]
-    B -->|HTTP POST| C[Azure Function]
-    C -->|Authenticate| D[Azure AD]
-    C -->|Fetch Rules| A
-    C -->|Validate| E[Claude AI]
-    E -->|Corrections| C
-    C -->|Upload| A
-    C -->|Save Results| A
+    SP[SharePoint]:::primary -->|Triggers| LA[Logic App]:::primary
+    LA -->|Sends document| AF[Azure Function]:::primary
+    AF -->|Authenticates via| AD[Azure AD]:::primary
+    AF -->|Validates text| AI[Claude AI]:::primary
+    AF -->|Reads & writes| GR[Graph API]:::primary
+    GR -->|Updates| SP
 
-    style A fill:#e3f2fd
-    style C fill:#fff3e0
-    style E fill:#f3e5f5
+    classDef primary fill:#c5d9f1,stroke:#1F4E79,color:#0a2744
+    classDef decision fill:#fac775,stroke:#854f0b,color:#412402
+    classDef outcome fill:#9fe1cb,stroke:#0f6e56,color:#04342c
 ```
 
 **Components:**

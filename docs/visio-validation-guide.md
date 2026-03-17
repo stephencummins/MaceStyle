@@ -216,22 +216,21 @@ Added in vsdx v0.5.12
 ## Validation Flow
 
 ```mermaid
-graph TD
-    A[Visio File Uploaded] --> B[Download from SharePoint]
-    B --> C[Load VisioFile Object]
-    C --> D{Rule Type?}
+---
+title: Visio Document Validation Flow
+---
+graph LR
+    A[Receive Visio File]:::primary --> B[Load & Parse Shapes]:::primary
+    B --> C["Apply Rules: Font · Colour · Size · Position"]:::primary
+    C --> D{Changes made?}:::decision
+    D -->|Yes| E[Upload Corrected File & Report]:::primary
+    D -->|No| F[Generate Report Only]:::primary
+    E --> G((Complete)):::outcome
+    F --> G
 
-    D -->|Font| H[Check Font Cells]
-    H --> I[Set to Arial if needed]
-
-    D -->|Color| J[Check fill_color/text_color]
-    J --> K[Update colors if needed]
-
-    I --> L[Save Modified .vsdx]
-    K --> L
-
-    L --> M[Upload to SharePoint]
-    M --> N[Generate HTML Report]
+    classDef primary fill:#c5d9f1,stroke:#1F4E79,color:#0a2744
+    classDef decision fill:#fac775,stroke:#854f0b,color:#412402
+    classDef outcome fill:#9fe1cb,stroke:#0f6e56,color:#04342c
 ```
 
 ## Quick Start: Structural Validation Examples

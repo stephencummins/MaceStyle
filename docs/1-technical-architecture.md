@@ -9,68 +9,33 @@ The Mace Style Validator is an automated document validation system that enforce
 ## Architecture Diagram
 
 ```mermaid
-graph TB
-    subgraph "SharePoint Online"
-        DOC[Document Library]
-        RULES[Style Rules List]
-        RESULTS[Validation Results List]
-        REPORT[HTML Reports]
+---
+title: System Architecture Overview
+---
+graph LR
+    subgraph SharePoint
+        SP[Documents · Rules · Results]:::primary
     end
-
-    subgraph "Orchestration"
-        FLOW[Logic App / Power Automate]
+    subgraph Orchestration
+        LA[Logic App]:::primary
     end
-
-    subgraph "Azure"
-        FUNC[Azure Function<br/>ValidateDocument]
-        GRAPH[Microsoft Graph API]
+    subgraph Azure
+        AF[Azure Function]:::primary
+        GR[Graph API]:::primary
     end
+    AD[Azure AD]:::primary
+    AI[Claude AI]:::outcome
 
-    subgraph "AI Services"
-        CLAUDE[Claude AI API<br/>Anthropic]
-    end
+    SP -->|File changed| LA
+    LA -->|Sends document| AF
+    AF -->|Authenticates| AD
+    AF -->|Reads & writes| GR
+    GR -->|Syncs| SP
+    AF -.->|AI validation| AI
 
-    subgraph "Azure AD"
-        AUTH[App Registration<br/>Authentication]
-    end
-
-    DOC -->|File Created/Modified| FLOW
-    FLOW -->|HTTP POST<br/>File Content + Metadata| FUNC
-
-    FUNC -->|Authenticate| AUTH
-    AUTH -->|Access Token| FUNC
-
-    FUNC -->|Fetch Style Rules| GRAPH
-    GRAPH -->|Read| RULES
-
-    FUNC -->|Download File| GRAPH
-    GRAPH -->|Read| DOC
-
-    FUNC -->|Validate Text| CLAUDE
-    CLAUDE -->|Corrections| FUNC
-
-    FUNC -->|Upload Fixed File| GRAPH
-    GRAPH -->|Write| DOC
-
-    FUNC -->|Upload HTML Report| GRAPH
-    GRAPH -->|Write| REPORT
-
-    FUNC -->|Save Validation Result| GRAPH
-    GRAPH -->|Create Item| RESULTS
-
-    FUNC -->|Update Metadata| GRAPH
-    GRAPH -->|Update| DOC
-
-    FUNC -->|Response| FLOW
-    FLOW -->|Update Status| DOC
-
-    style DOC fill:#e3f2fd
-    style RULES fill:#e3f2fd
-    style RESULTS fill:#e3f2fd
-    style REPORT fill:#e3f2fd
-    style FUNC fill:#fff3e0
-    style CLAUDE fill:#f3e5f5
-    style FLOW fill:#e8f5e9
+    classDef primary fill:#c5d9f1,stroke:#1F4E79,color:#0a2744
+    classDef decision fill:#fac775,stroke:#854f0b,color:#412402
+    classDef outcome fill:#9fe1cb,stroke:#0f6e56,color:#04342c
 ```
 
 ## Component Details
@@ -188,37 +153,21 @@ Response from Azure Function:
 
 **Validation Flow:**
 ```mermaid
-flowchart TD
-    START([HTTP Request]) --> AUTH[Authenticate with Graph API]
-    AUTH --> STATUS1[Update Status: Validating...]
-    STATUS1 --> RULES[Fetch Style Rules]
-    RULES --> DOWNLOAD[Download Document]
-    DOWNLOAD --> VALIDATE[Validate Document]
+---
+title: Document Validation Flow
+---
+graph LR
+    A[Receive Request & Authenticate]:::primary --> B[Fetch Rules & Download Document]:::primary
+    B --> C[Apply Style Rules]:::primary
+    C --> D{Fixes applied?}:::decision
+    D -->|Yes| E[Upload Corrected File & Report]:::primary
+    D -->|No| F[Generate Report Only]:::primary
+    E --> G((Update Status)):::outcome
+    F --> G
 
-    VALIDATE --> AI{UseAI Rules?}
-    AI -->|Yes| CLAUDE[Send to Claude AI]
-    CLAUDE --> APPLY_AI[Apply AI Corrections]
-
-    AI -->|No| HARD[Apply Hard-coded Rules]
-    APPLY_AI --> HARD
-
-    HARD --> FONT[Font Fixes]
-    FONT --> SAVE[Save Fixed Document]
-
-    SAVE --> UPLOAD{Fixes Applied?}
-    UPLOAD -->|Yes| UP_DOC[Upload Fixed Document]
-    UPLOAD -->|No| REPORT
-    UP_DOC --> REPORT[Generate HTML Report]
-
-    REPORT --> UP_REPORT[Upload HTML Report]
-    UP_REPORT --> RES[Save to Validation Results]
-    RES --> META[Update Document Metadata]
-    META --> STATUS2[Update Status: Passed/Review Required/Failed]
-    STATUS2 --> END([Return Response])
-
-    style CLAUDE fill:#f3e5f5
-    style UPLOAD fill:#fff3e0
-    style STATUS2 fill:#e8f5e9
+    classDef primary fill:#c5d9f1,stroke:#1F4E79,color:#0a2744
+    classDef decision fill:#fac775,stroke:#854f0b,color:#412402
+    classDef outcome fill:#9fe1cb,stroke:#0f6e56,color:#04342c
 ```
 
 **Key Modules:**
@@ -311,47 +260,26 @@ Return JSON: {"corrected_text": "...", "changes_made": 5}
 ## Data Flow Sequence
 
 ```mermaid
+---
+title: End-to-End Validation Sequence
+---
 sequenceDiagram
     participant User
     participant SP as SharePoint
-    participant PA as Logic App
+    participant LA as Logic App
     participant AF as Azure Function
     participant Graph as Graph API
-    participant Claude as Claude AI
 
-    User->>SP: Upload/Modify Document
-    SP->>PA: Trigger: File Changed
-    PA->>SP: Get File Content
-    SP-->>PA: Base64 Content
-    PA->>AF: POST /api/validatedocument
-
-    AF->>Graph: Authenticate
-    Graph-->>AF: Access Token
-
-    AF->>Graph: Fetch Style Rules
-    Graph-->>AF: Rules List
-
-    AF->>Claude: Validate Text (AI Rules)
-    Claude-->>AF: Corrections
-
-    AF->>AF: Apply Hard-coded Rules
-    AF->>AF: Generate HTML Report
-
-    AF->>Graph: Upload Fixed Document
-    Graph->>SP: Update File
-
-    AF->>Graph: Upload HTML Report
-    Graph->>SP: Create Report File
-
-    AF->>Graph: Create Validation Result
-    Graph->>SP: Add to Results List
-
-    AF->>Graph: Update Document Metadata
-    Graph->>SP: Add Result Link
-
-    AF-->>PA: JSON Response
-    PA->>SP: Update Status Column
-    SP-->>User: Validation Complete
+    User->>SP: Upload document
+    SP->>LA: File changed trigger
+    LA->>AF: POST /api/ValidateDocument
+    AF->>Graph: Authenticate & fetch rules
+    AF->>AF: Validate & auto-fix
+    AF->>Graph: Upload corrected file + report
+    Graph->>SP: Update document & metadata
+    AF-->>LA: Return status
+    LA->>SP: Update ValidationStatus
+    SP-->>User: Validation complete
 ```
 
 ---
@@ -380,14 +308,18 @@ sequenceDiagram
 
 ### Authentication Flow
 ```mermaid
-flowchart LR
-    AF[Azure Function] -->|Client Credentials| AAD[Azure AD]
-    AAD -->|JWT Token| AF
-    AF -->|Bearer Token| GRAPH[Graph API]
-    GRAPH -->|Authorized| SP[SharePoint]
+---
+title: Authentication Flow
+---
+graph LR
+    AF[Azure Function]:::primary -->|Client credentials| AAD[Azure AD]:::primary
+    AAD -->|JWT token| AF
+    AF -->|Bearer token| GR[Graph API]:::primary
+    GR -->|Authorised access| SP((SharePoint)):::outcome
 
-    style AAD fill:#f3e5f5
-    style AF fill:#fff3e0
+    classDef primary fill:#c5d9f1,stroke:#1F4E79,color:#0a2744
+    classDef decision fill:#fac775,stroke:#854f0b,color:#412402
+    classDef outcome fill:#9fe1cb,stroke:#0f6e56,color:#04342c
 ```
 
 ### Security Measures
