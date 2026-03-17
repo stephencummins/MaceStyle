@@ -1,42 +1,19 @@
 """
 Check actual file locations in SharePoint via Graph API
 """
-import os
-import msal
 import requests
-import json
 
-# Configuration - set via environment variables
-TENANT_ID = os.environ.get("SHAREPOINT_TENANT_ID")
-CLIENT_ID = os.environ.get("SHAREPOINT_CLIENT_ID")
-CLIENT_SECRET = os.environ.get("SHAREPOINT_CLIENT_SECRET")
-SITE_URL = os.environ.get("SHAREPOINT_SITE_URL")
-
-def get_token():
-    authority = f"https://login.microsoftonline.com/{TENANT_ID}"
-    scope = ["https://graph.microsoft.com/.default"]
-
-    app = msal.ConfidentialClientApplication(
-        CLIENT_ID,
-        authority=authority,
-        client_credential=CLIENT_SECRET
-    )
-
-    result = app.acquire_token_for_client(scopes=scope)
-    if "access_token" in result:
-        return result["access_token"]
-    else:
-        raise Exception(f"Failed to acquire token: {result}")
+from ValidateDocument.config import get_graph_token, get_site_info
 
 def main():
     print("🔍 Checking SharePoint file locations\n")
 
-    token = get_token()
+    token = get_graph_token()
 
     # Get site ID
-    parts = SITE_URL.replace("https://", "").split("/")
-    hostname = parts[0]
-    site_path = "/" + "/".join(parts[1:])
+    site_info = get_site_info()
+    hostname = site_info["hostname"]
+    site_path = site_info["site_path"]
 
     headers = {
         "Authorization": f"Bearer {token}",

@@ -9,49 +9,9 @@ Rules based on Process Map Template requirements:
 - Activity types and decision points
 - Document references
 """
-import os
-import msal
 import requests
-import json
 
-# Configuration
-TENANT_ID = os.environ.get("SHAREPOINT_TENANT_ID")
-CLIENT_ID = os.environ.get("SHAREPOINT_CLIENT_ID")
-CLIENT_SECRET = os.environ.get("SHAREPOINT_CLIENT_SECRET")
-SITE_URL = os.environ.get("SHAREPOINT_SITE_URL")
-
-def get_token():
-    """Get Microsoft Graph API access token"""
-    authority = f"https://login.microsoftonline.com/{TENANT_ID}"
-    scope = ["https://graph.microsoft.com/.default"]
-
-    app = msal.ConfidentialClientApplication(
-        CLIENT_ID,
-        authority=authority,
-        client_credential=CLIENT_SECRET
-    )
-
-    result = app.acquire_token_for_client(scopes=scope)
-    if "access_token" in result:
-        return result["access_token"]
-    else:
-        raise Exception(f"Failed to acquire token: {result}")
-
-def get_site_id(token):
-    """Get SharePoint site ID"""
-    parts = SITE_URL.replace("https://", "").split("/")
-    hostname = parts[0]
-    site_path = "/" + "/".join(parts[1:])
-
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json"
-    }
-
-    site_url = f"https://graph.microsoft.com/v1.0/sites/{hostname}:{site_path}"
-    response = requests.get(site_url, headers=headers)
-    response.raise_for_status()
-    return response.json()["id"]
+from ValidateDocument.config import get_graph_token, get_site_id
 
 def add_rule(token, site_id, rule):
     """Add a single rule to the Style Rules list"""
@@ -346,7 +306,7 @@ def main():
     try:
         # Step 1: Get authentication token
         print("Step 1: Getting authentication token...")
-        token = get_token()
+        token = get_graph_token()
         print("✓ Token acquired successfully")
         print()
 

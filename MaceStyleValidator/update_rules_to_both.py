@@ -2,39 +2,15 @@
 One-off script to update all SharePoint Style Rules with DocumentType='Word' to 'Both',
 so they apply to both Word and Excel documents.
 """
-import os
-import msal
 import requests
 
-TENANT_ID = os.environ.get("SHAREPOINT_TENANT_ID")
-CLIENT_ID = os.environ.get("SHAREPOINT_CLIENT_ID")
-CLIENT_SECRET = os.environ.get("SHAREPOINT_CLIENT_SECRET")
-SITE_URL = os.environ.get("SHAREPOINT_SITE_URL")
-
-
-def get_token():
-    authority = f"https://login.microsoftonline.com/{TENANT_ID}"
-    app = msal.ConfidentialClientApplication(CLIENT_ID, authority=authority, client_credential=CLIENT_SECRET)
-    result = app.acquire_token_for_client(scopes=["https://graph.microsoft.com/.default"])
-    if "access_token" in result:
-        return result["access_token"]
-    raise Exception(f"Failed to acquire token: {result}")
-
-
-def get_site_id(token):
-    parts = SITE_URL.replace("https://", "").split("/")
-    hostname = parts[0]
-    site_path = "/" + "/".join(parts[1:])
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-    resp = requests.get(f"https://graph.microsoft.com/v1.0/sites/{hostname}:{site_path}", headers=headers)
-    resp.raise_for_status()
-    return resp.json()["id"]
+from ValidateDocument.config import get_graph_token, get_site_id
 
 
 def main():
     print("Updating Style Rules: DocumentType 'Word'/'Both' -> 'All'\n")
 
-    token = get_token()
+    token = get_graph_token()
     site_id = get_site_id(token)
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json", "Content-Type": "application/json"}
 

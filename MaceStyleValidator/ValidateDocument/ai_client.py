@@ -49,10 +49,18 @@ def call_claude(ai_rules, document_text):
         logging.warning("ANTHROPIC_API_KEY not set - skipping AI validation")
         return None
 
+    # Data classification warning for large documents
+    text_len = len(document_text)
+    if text_len > 50000:
+        logging.warning(
+            f"Large document ({text_len} chars) being sent to external AI service. "
+            "Ensure document classification permits external processing."
+        )
+
     client = Anthropic(api_key=api_key)
     prompt = build_dynamic_prompt(ai_rules, document_text)
 
-    logging.info(f"Calling Claude ({CLAUDE_MODEL}) with {len(document_text)} chars, {len(ai_rules)} rules")
+    logging.info(f"Calling Claude ({CLAUDE_MODEL}) with {text_len} chars, {len(ai_rules)} rules")
 
     response = client.messages.create(
         model=CLAUDE_MODEL,

@@ -1,19 +1,16 @@
 """Configuration and authentication for MaceStyle Validator"""
 import os
 import msal
+import requests
 
 # Claude AI configuration
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 CLAUDE_MAX_TOKENS = 8192
 CLAUDE_TEMPERATURE = 0.3
 
-# SharePoint list IDs - override via env vars for different tenants
-DOC_LIBRARY_LIST_ID = os.environ.get(
-    "SHAREPOINT_DOC_LIBRARY_ID", "800c67b1-816d-43f6-ac7d-d21bca8d140f"
-)
-VALIDATION_RESULTS_LIST_ID = os.environ.get(
-    "SHAREPOINT_VALIDATION_RESULTS_ID", "d4f4cc72-7f68-4009-a1eb-e86d9e67a4dd"
-)
+# SharePoint list IDs - must be set via env vars
+DOC_LIBRARY_LIST_ID = os.environ.get("SHAREPOINT_DOC_LIBRARY_ID")
+VALIDATION_RESULTS_LIST_ID = os.environ.get("SHAREPOINT_VALIDATION_RESULTS_ID")
 
 
 def get_graph_token():
@@ -50,3 +47,15 @@ def get_site_info():
     site_path = "/" + "/".join(parts[1:]) if len(parts) > 1 else ""
 
     return {"hostname": hostname, "site_path": site_path, "full_url": site_url}
+
+
+def get_site_id(token=None):
+    """Get SharePoint site ID from Graph API"""
+    if token is None:
+        token = get_graph_token()
+    site = get_site_info()
+    url = f"https://graph.microsoft.com/v1.0/sites/{site['hostname']}:{site['site_path']}"
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()["id"]

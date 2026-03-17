@@ -8,14 +8,14 @@ import requests
 
 app = func.FunctionApp()
 
-@app.route(route="ValidateDocument", methods=["GET", "POST"])
+@app.route(route="ValidateDocument", methods=["GET", "POST"], auth_level=func.AuthLevel.FUNCTION)
 def ValidateDocument(req: func.HttpRequest) -> func.HttpResponse:
     """HTTP trigger function to validate documents - v5.0-excel"""
     logging.info("=== ValidateDocument v5.0-excel ===")
     from ValidateDocument import main
     return main(req)
 
-@app.route(route="TestSharePoint", methods=["GET"])
+@app.route(route="TestSharePoint", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
 def TestSharePoint(req: func.HttpRequest) -> func.HttpResponse:
     """Test SharePoint connectivity using Graph API"""
     try:
@@ -90,7 +90,7 @@ async def MaceyBotEndpoint(req: func.HttpRequest) -> func.HttpResponse:
     from MaceyBot import main as macey_main
     return await macey_main(req)
 
-@app.route(route="ListDocuments", methods=["GET"])
+@app.route(route="ListDocuments", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
 def ListDocuments(req: func.HttpRequest) -> func.HttpResponse:
     """List documents in SharePoint library"""
     try:
