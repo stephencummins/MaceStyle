@@ -14,9 +14,9 @@ What the Azure Admin needs to set up to transfer the MaceStyle Validator to the 
 
 - **New App Registration** in the prod tenant for SharePoint access
 - **API Permissions** (Application, not Delegated):
-  - `Sites.ReadWrite.All` (read/write SharePoint sites)
-  - `Files.ReadWrite.All` (read/write files)
-- **Admin consent** granted for those permissions
+  - `Sites.Selected` (site-scoped access — no tenant-wide permissions)
+- **Admin consent** granted for this permission
+- **Per-site access** granted via Graph API (see [azure-admin-setup.md](azure-admin-setup.md#grant-per-site-access))
 - **Client Secret** generated (note the expiry)
 - Provide Stephen with the **Tenant ID**, **Client ID**, and **Client Secret**
 

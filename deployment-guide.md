@@ -8,7 +8,7 @@ Deploy the MaceyBot Teams bot powered by Claude API to replace Copilot Studio.
 - Azure Functions Core Tools v4 (or VS Code Azure Functions extension)
 - An Anthropic API key
 - SharePoint site with a "Site Creation" list
-- Azure AD app registration with `Sites.ReadWrite.All` (application permission)
+- Azure AD app registration with `Sites.Selected` (application permission) and per-site access granted
 
 ## Step 1: Azure Bot Service
 
@@ -37,11 +37,11 @@ Deploy the MaceyBot Teams bot powered by Claude API to replace Copilot Studio.
 
 ## Step 3: SharePoint App Registration
 
-If you already have an app registration for MaceStyle with `Sites.ReadWrite.All`, you can reuse it. Otherwise:
+If you already have an app registration for MaceStyle with `Sites.Selected`, you can reuse it. Otherwise:
 
 1. Azure Portal → Azure Active Directory → App registrations → New registration
 2. Name: `MaceyBot-SP` (or reuse existing)
-3. API permissions → Add → Microsoft Graph → Application → `Sites.ReadWrite.All`
+3. API permissions → Add → Microsoft Graph → Application → `Sites.Selected`
 4. Grant admin consent
 5. Certificates & secrets → New client secret → copy value
 6. Note the **Application (client) ID** and **Directory (tenant) ID**
@@ -129,7 +129,7 @@ This simulates the chat locally, calls Claude API, and mocks the SharePoint subm
 - Try running `test-maceybot.py` locally to isolate the issue
 
 ### SharePoint write fails
-- Verify the app registration has `Sites.ReadWrite.All` with admin consent
+- Verify the app registration has `Sites.Selected` with admin consent and per-site access granted
 - Check `SP_SITE_URL` points to the correct site
 - Verify the list name matches `SP_LIST_NAME`
 - Check that list columns match: Title, SiteDescription, Visibility, SiteOwnerClaims, Notes

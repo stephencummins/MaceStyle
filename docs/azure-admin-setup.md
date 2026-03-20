@@ -32,10 +32,14 @@ The validation takes 5-15 seconds per document and runs serverlessly with no ong
 
 | Permission | Type | Description |
 |------------|------|-------------|
-| `Sites.ReadWrite.All` | Application | Read/write SharePoint site content |
-| `Files.ReadWrite.All` | Application | Read/write files in SharePoint libraries |
+| `Sites.Selected` | Application | Access only explicitly granted SharePoint sites (none by default) |
 
-Both require **admin consent granted**.
+This requires **admin consent granted**.
+
+> **Why `Sites.Selected` instead of `Sites.ReadWrite.All`?**
+> `Sites.ReadWrite.All` grants access to **every** SharePoint site in the tenant. `Sites.Selected` grants access to **no sites** by default — access is then explicitly granted per-site via the Graph API. This follows the principle of least privilege and ensures the app can only read/write the designated Style Validation site.
+
+**After the App Registration is created**, per-site access must be granted using the Graph API (see [Grant Per-Site Access](#grant-per-site-access) below).
 
 **Values we need back:**
 - Tenant ID
@@ -75,13 +79,75 @@ We will handle list/library creation and rule population once the site exists.
 
 ---
 
+## Grant Per-Site Access
+
+Once the App Registration exists and `Sites.Selected` has been admin-consented, you must grant the app access to the specific SharePoint site. This requires a one-time Graph API call made by an admin with `Sites.FullControl.All` (or a Global Admin using PowerShell).
+
+**Option A: Use the included helper script**
+
+```bash
+cd MaceStyleValidator
+python3 grant_site_permissions.py
+```
+
+This script uses the app's own credentials (from environment variables) plus an admin token to grant `write` access on the target site.
+
+**Option B: PowerShell (run by a Global Admin)**
+
+```powershell
+# Install module if needed
+Install-Module Microsoft.Graph -Scope CurrentUser
+
+# Connect as admin
+Connect-MgGraph -Scopes "Sites.FullControl.All"
+
+# Get the site ID
+$site = Get-MgSite -Search "StyleValidation"
+
+# Grant the app write access to this site only
+New-MgSitePermission -SiteId $site.Id -BodyParameter @{
+    roles = @("write")
+    grantedToIdentities = @(@{
+        application = @{
+            id = "<MaceStyleValidator-App Client ID>"
+            displayName = "MaceStyleValidator-App"
+        }
+    })
+}
+```
+
+**Option C: Graph API (via curl or Postman)**
+
+```http
+POST https://graph.microsoft.com/v1.0/sites/{siteId}/permissions
+Authorization: Bearer <admin-token-with-Sites.FullControl.All>
+Content-Type: application/json
+
+{
+    "roles": ["write"],
+    "grantedToIdentities": [{
+        "application": {
+            "id": "<MaceStyleValidator-App Client ID>",
+            "displayName": "MaceStyleValidator-App"
+        }
+    }]
+}
+```
+
+Available roles: `read`, `write`, `owner`, `fullcontrol`. The `write` role is sufficient for MaceStyle (read files, write corrected files, update list items).
+
+> **Note:** The admin who makes this grant needs `Sites.FullControl.All` permission, but MaceStyle itself only ever receives `Sites.Selected` with `write` on the single site. The admin permission is only needed for this one-time setup step.
+
+---
+
 ## Security Summary
 
-- **No user impersonation** - the app authenticates as a service principal only
-- **No data persistence** - documents are processed in-memory and not stored outside SharePoint
+- **Site-scoped access** — uses `Sites.Selected` permission, granting access to only the designated SharePoint site (not the entire tenant)
+- **No user impersonation** — the app authenticates as a service principal only
+- **No data persistence** — documents are processed in-memory and not stored outside SharePoint
 - **Secrets** are stored in Azure Function App Settings (encrypted at rest), never in code
 - **Audit trail** maintained in a SharePoint list (Validation Results)
-- **External API call** - for Word documents only, text content is sent to Anthropic's Claude AI API (hosted in the US) for language correction. No files are stored by Anthropic. Excel, PowerPoint, and Visio use rule-based validation only (no AI). If data residency is a concern, AI can be disabled entirely.
+- **External API call** — for Word documents only, text content is sent to Anthropic's Claude AI API (hosted in the US) for language correction. No files are stored by Anthropic. Excel, PowerPoint, and Visio use rule-based validation only (no AI). If data residency is a concern, AI can be disabled entirely.
 
 ---
 
@@ -115,10 +181,10 @@ For the Azure Admin:
 
 - [ ] Create App Registration (`MaceStyleValidator-App`) in Entra ID
 - [ ] Create client secret and share Tenant ID, Client ID, and Secret securely
-- [ ] Grant admin consent for `Sites.ReadWrite.All` and `Files.ReadWrite.All` (Application)
+- [ ] Grant admin consent for `Sites.Selected` (Application permission)
 - [ ] Create Azure Function App (`func-mace-validator-prod`, Python 3.11, Linux, Consumption)
 - [ ] Create Resource Group `rg-macestyle`
 - [ ] Create SharePoint site `/sites/StyleValidation` (or confirm an existing site to use)
-- [ ] Grant the App Registration access to the SharePoint site (if site-scoped permissions are preferred over tenant-wide)
+- [ ] Grant the App Registration `write` access to the SharePoint site (see [Grant Per-Site Access](#grant-per-site-access))
 
 Everything else (function deployment, Logic App deployment, SharePoint list setup, rule configuration) will be handled by me (Stephen Cummins).

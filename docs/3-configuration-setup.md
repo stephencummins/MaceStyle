@@ -60,15 +60,16 @@ This app will authenticate the Azure Function to access SharePoint.
    - Click **API permissions** → **Add a permission**
    - Select **Microsoft Graph** → **Application permissions**
 
-   **Add these permissions:**
-   - `Sites.ReadWrite.All` - Read and write items in all site collections
-   - `Files.ReadWrite.All` - Read and write files in all site collections
+   **Add this permission:**
+   - `Sites.Selected` — Grants access to no sites by default; access is granted per-site via the Graph API
 
    - Click **Add permissions**
    - Click **Grant admin consent for [Tenant Name]**
    - Confirm by clicking **Yes**
 
-   ✅ **Verify:** Permissions show "Granted for [Tenant]"
+   ✅ **Verify:** Permission shows "Granted for [Tenant]"
+
+   > **Note:** `Sites.Selected` alone does not grant access to any SharePoint site. After completing the App Registration, you must grant per-site access — see [docs/azure-admin-setup.md](azure-admin-setup.md#grant-per-site-access) for instructions.
 
 ---
 
@@ -673,7 +674,7 @@ Example:
 **Principle of Least Privilege:**
 
 1. **Azure Function**
-   - Only needs Sites.ReadWrite.All
+   - Uses `Sites.Selected` with per-site `write` grant (not tenant-wide access)
    - No user impersonation
 
 2. **SharePoint Users**

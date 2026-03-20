@@ -104,7 +104,7 @@ graph LR
 2. **Set up Azure resources**
    - Create Azure Function App
    - Create App Registration in Azure AD
-   - Configure API permissions (`Sites.ReadWrite.All`, `Files.ReadWrite.All`)
+   - Configure API permissions (`Sites.Selected` — see [Security](#-security) below)
 
 3. **Configure SharePoint**
    - Create site: `/sites/StyleValidation`
@@ -226,11 +226,24 @@ python3 create_test_document.py
 
 ## 🔒 Security
 
+- **Site-scoped permissions** — uses `Sites.Selected` (not tenant-wide `Sites.ReadWrite.All`), granting access to only the designated SharePoint site. See [Grant Per-Site Permissions](#grant-per-site-permissions) below.
 - **Azure AD authentication** - Secure service principal
 - **Encrypted secrets** - Azure Key Vault / App Settings
-- **Minimal permissions** - Principle of least privilege
 - **Audit trail** - All validations logged
 - **No data persistence** - Documents processed in-memory
+
+### Grant Per-Site Permissions
+
+Instead of granting tenant-wide access to all SharePoint sites, MaceStyle uses `Sites.Selected` — a permission that grants **no access by default**. Access is then explicitly granted to only the target site via the Graph API.
+
+1. In Entra ID, grant the app `Sites.Selected` (Application permission) and admin-consent it
+2. Run the included helper script to grant access to the specific site:
+
+```bash
+python3 grant_site_permissions.py
+```
+
+This calls the Graph API to grant read/write access on the target site only. See [docs/azure-admin-setup.md](docs/azure-admin-setup.md) for full details.
 
 ## 💰 Costs
 

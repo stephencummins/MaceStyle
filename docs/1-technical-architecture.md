@@ -224,8 +224,7 @@ Return JSON: {"corrected_text": "...", "changes_made": 5}
 **Purpose:** SharePoint data access
 
 **Permissions Required:**
-- `Sites.ReadWrite.All`: Read/write SharePoint content
-- `Files.ReadWrite.All`: Read/write documents
+- `Sites.Selected`: Site-scoped access (granted per-site via Graph API, not tenant-wide)
 
 **Key Operations:**
 - Read/write files in document libraries
@@ -323,7 +322,7 @@ graph LR
 ```
 
 ### Security Measures
-1. **App Registration**: Service principal with minimal permissions
+1. **App Registration**: Service principal with `Sites.Selected` — access granted to a single SharePoint site only (not tenant-wide)
 2. **Secret Management**: Azure Key Vault / App Settings (encrypted)
 3. **Network Security**: HTTPS only, Azure Function CORS policies
 4. **Data Privacy**: Documents processed in-memory, not persisted

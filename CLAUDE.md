@@ -11,6 +11,7 @@ Automated document validation system enforcing the Mace Control Centre Writing S
 
 ## Security
 
+- **Site-scoped permissions**: Uses `Sites.Selected` (not tenant-wide `Sites.ReadWrite.All`). Per-site `write` access granted via Graph API. See `grant_site_permissions.py`.
 - **Endpoint auth**: All HTTP routes require a function key (`auth_level=FUNCTION`), except MaceyBot (ANONYMOUS, required for Teams webhook). Keys managed in Azure Portal > App keys.
 - **Credentials**: All Azure AD identifiers and secrets are env-var only. No hardcoded defaults anywhere.
 - **Data classification**: Documents >50K chars trigger a warning log before being sent to the external AI service. Ensure document classification permits external processing.
