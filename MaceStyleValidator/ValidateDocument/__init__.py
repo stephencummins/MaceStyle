@@ -17,15 +17,32 @@ from .word_validator import validate_word_document
 from .visio_validator import validate_visio_document
 from .excel_validator import validate_excel_document
 from .powerpoint_validator import validate_powerpoint_document
+from .access_control import check_access, get_caller_identity
+from .monitoring import (
+    ValidationMetrics, generate_request_id, emit_audit_event, emit_alert, track_phase
+)
 
 
 def main(req: func.HttpRequest) -> func.HttpResponse:
-    logging.info('=== STYLE VALIDATION FUNCTION TRIGGERED ===')
+    request_id = generate_request_id()
+    logging.info(f'=== STYLE VALIDATION v5.1.0-governed [{request_id}] ===')
+
+    # Access control (SOC 2 CC6.1)
+    denied = check_access(req)
+    if denied:
+        emit_audit_event({
+            "event_type": "access_denied",
+            "request_id": request_id,
+            "caller": get_caller_identity(req),
+        })
+        return denied
+
+    caller = get_caller_identity(req)
 
     try:
         # 1. Parse request
         req_body = req.get_json()
-        logging.info(f"Request keys: {list(req_body.keys())}")
+        logging.info(f"[{request_id}] Request keys: {list(req_body.keys())}")
 
         item_id = req_body.get('itemId') or req_body.get('ID')
         file_name = (req_body.get('fileName') or
@@ -38,11 +55,17 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                     req_body.get('ServerRelativeUrl') or
                     req_body.get('fileRef'))
 
-        logging.info(f"File: {file_name}, ID: {item_id}, Has content: {bool(file_content_base64)}, URL: {file_url}")
+        # Initialise metrics tracking (SOC 2 CC7.2)
+        metrics = ValidationMetrics(request_id=request_id, filename=file_name or "unknown", caller=caller)
+        metrics.file_type = file_extension
+
+        logging.info(f"[{request_id}] File: {file_name}, ID: {item_id}, Has content: {bool(file_content_base64)}, URL: {file_url}")
 
         # 2. Get Graph API token
-        token = get_graph_token()
-        logging.info('Token acquired')
+        with track_phase(metrics, "auth"):
+            token = get_graph_token()
+        metrics.sharepoint_calls += 1
+        logging.info(f'[{request_id}] Token acquired')
 
         # 3. Update status to "Validating..."
         try:
@@ -51,21 +74,39 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             logging.warning(f"Could not set initial status: {e}")
 
         # 4. Fetch validation rules
-        rules = fetch_validation_rules(token)
-        logging.info(f"Loaded {len(rules)} validation rules")
+        with track_phase(metrics, "fetch_rules"):
+            rules = fetch_validation_rules(token)
+        metrics.sharepoint_calls += 1
+        metrics.rules_loaded = len(rules)
+        metrics.ai_rules_count = sum(1 for r in rules if r.get('use_ai', False))
+        logging.info(f"[{request_id}] Loaded {len(rules)} rules ({metrics.ai_rules_count} AI)")
 
         # 5. Get file content
+        MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+
         if file_content_base64:
             file_bytes = base64.b64decode(file_content_base64)
+            metrics.file_size_bytes = len(file_bytes)
+            if len(file_bytes) > MAX_FILE_SIZE:
+                metrics.fail(f"File too large: {len(file_bytes)} bytes")
+                emit_audit_event(metrics.to_audit_entry())
+                return func.HttpResponse(
+                    json.dumps({"error": f"File too large ({len(file_bytes)} bytes). Maximum allowed is 50 MB."}),
+                    mimetype="application/json",
+                    status_code=413
+                )
             file_stream = BytesIO(file_bytes)
-            logging.info(f"File decoded from base64, size: {len(file_bytes)} bytes")
+            logging.info(f"[{request_id}] File decoded from base64, size: {len(file_bytes)} bytes")
         elif file_url:
-            file_stream = download_file(token, file_url)
+            with track_phase(metrics, "download"):
+                file_stream = download_file(token, file_url)
+            metrics.sharepoint_calls += 1
         else:
             raise ValueError("Either fileContent or fileUrl must be provided")
 
         # 6. Validate based on file type
-        logging.info(f'Validating {file_extension} document...')
+        logging.info(f'[{request_id}] Validating {file_extension} document...')
+        metrics.start_phase("validation")
 
         if file_extension in ['.docx', '.doc', '.docm', '.dotx', '.dotm']:
             result = validate_word_document(file_stream, rules)
@@ -76,11 +117,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         elif file_extension in ['.vsdx', '.vsd']:
             result = validate_visio_document(file_stream, rules)
             import tempfile
-            with tempfile.NamedTemporaryFile(suffix='.vsdx', delete=False) as tmp_out:
-                tmp_out_path = tmp_out.name
-            result['document'].save_vsdx(tmp_out_path)
-            fixed_stream = BytesIO(open(tmp_out_path, 'rb').read())
-            os.unlink(tmp_out_path)
+            tmp_out_path = None
+            try:
+                with tempfile.NamedTemporaryFile(suffix='.vsdx', delete=False) as tmp_out:
+                    tmp_out_path = tmp_out.name
+                result['document'].save_vsdx(tmp_out_path)
+                fixed_stream = BytesIO(open(tmp_out_path, 'rb').read())
+            finally:
+                if tmp_out_path:
+                    try:
+                        os.unlink(tmp_out_path)
+                    except Exception:
+                        pass
 
         elif file_extension in ['.xlsx', '.xls', '.xlsm']:
             result = validate_excel_document(file_stream, rules)
@@ -101,14 +149,18 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 status_code=400
             )
 
+        metrics.end_phase()
+
         # 7. Upload fixed file if fixes were applied
         if file_url and result['fixes_applied']:
-            logging.info(f'Uploading fixed document ({len(result["fixes_applied"])} fixes)...')
-            _web_url, _item_id = upload_file(token, fixed_stream, file_url)
+            logging.info(f'[{request_id}] Uploading fixed document ({len(result["fixes_applied"])} fixes)...')
+            with track_phase(metrics, "upload_fixed"):
+                _web_url, _item_id = upload_file(token, fixed_stream, file_url)
+            metrics.sharepoint_calls += 1
         elif not file_url:
-            logging.info('Skipping upload (no file URL)')
+            logging.info(f'[{request_id}] Skipping upload (no file URL)')
         else:
-            logging.info('No fixes to upload')
+            logging.info(f'[{request_id}] No fixes to upload')
 
         # 8. Generate and upload report
         report_html = generate_report(file_name, result['issues'], result['fixes_applied'])
@@ -124,10 +176,13 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             report_path = f"/Validation Reports/{report_filename}"
 
         try:
-            report_url, report_drive_item_id = upload_file(token, report_stream, report_path)
-            logging.info(f"Report uploaded: {report_url}")
+            with track_phase(metrics, "upload_report"):
+                report_url, report_drive_item_id = upload_file(token, report_stream, report_path)
+            metrics.sharepoint_calls += 1
+            metrics.report_uploaded = True
+            logging.info(f"[{request_id}] Report uploaded: {report_url}")
         except Exception as e:
-            logging.error(f"Failed to upload report: {e}")
+            logging.error(f"[{request_id}] Failed to upload report: {e}")
 
         # 9. Save validation result to SharePoint list
         validation_result_info = None
@@ -186,8 +241,10 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         except Exception as e:
             logging.warning(f"Could not set final status: {e}")
 
-        # 11. Return response
-        logging.info(f'=== VALIDATION COMPLETE: {final_status} ===')
+        # 11. Emit audit event and return response
+        metrics.complete(status=final_status, issues=len(result['issues']), fixes=len(result['fixes_applied']))
+        emit_audit_event(metrics.to_audit_entry())
+        logging.info(f'=== VALIDATION COMPLETE [{request_id}]: {final_status} ({metrics.duration_ms}ms) ===')
 
         issues_count = len(result['issues'])
         fixes_count = len(result['fixes_applied'])
@@ -202,10 +259,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             description = f"{final_status} — no issues found"
 
         response_data = {
+            "requestId": request_id,
             "status": final_status,
             "description": description,
             "issuesFound": issues_count,
             "issuesFixed": fixes_count,
+            "durationMs": metrics.duration_ms,
             "reportUrl": report_url,
             "validationResultUrl": validation_result_info['list_item_url'] if validation_result_info else None,
             "reportLink": {
@@ -230,15 +289,21 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     except Exception as e:
         import traceback
-        tb = traceback.format_exc()
-        logging.error(f"=== VALIDATION FAILED ===")
+        logging.error(f"=== VALIDATION FAILED [{request_id}] ===")
         logging.error(f"Error: {e}")
-        logging.error(f"Traceback: {tb}")
+        logging.error(f"Traceback: {traceback.format_exc()}")
+
+        # Emit failure audit event (SOC 2 CC7.2)
+        if 'metrics' in locals():
+            metrics.fail(str(e))
+            emit_audit_event(metrics.to_audit_entry())
+        emit_alert("WARNING", f"Validation failed: {e}", {"request_id": request_id, "error_type": type(e).__name__})
+
         return func.HttpResponse(
             json.dumps({
+                "requestId": request_id,
                 "error": str(e),
-                "error_type": type(e).__name__,
-                "traceback": tb
+                "error_type": type(e).__name__
             }),
             mimetype="application/json",
             status_code=500

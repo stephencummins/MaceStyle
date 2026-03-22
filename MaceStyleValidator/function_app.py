@@ -10,10 +10,22 @@ app = func.FunctionApp()
 
 @app.route(route="ValidateDocument", methods=["GET", "POST"], auth_level=func.AuthLevel.FUNCTION)
 def ValidateDocument(req: func.HttpRequest) -> func.HttpResponse:
-    """HTTP trigger function to validate documents - v5.0-excel"""
-    logging.info("=== ValidateDocument v5.0-excel ===")
+    """HTTP trigger function to validate documents - v5.1.0-governed"""
+    logging.info("=== ValidateDocument v5.1.0-governed ===")
     from ValidateDocument import main
     return main(req)
+
+@app.route(route="HealthCheck", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
+def HealthCheck(req: func.HttpRequest) -> func.HttpResponse:
+    """System health check — SOC 2 CC7.2 monitoring endpoint"""
+    from ValidateDocument.monitoring import get_health_status
+    health = get_health_status()
+    status_code = 200 if health["status"] == "healthy" else 503
+    return func.HttpResponse(
+        json.dumps(health, indent=2),
+        mimetype="application/json",
+        status_code=status_code
+    )
 
 @app.route(route="TestSharePoint", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
 def TestSharePoint(req: func.HttpRequest) -> func.HttpResponse:
@@ -74,11 +86,9 @@ def TestSharePoint(req: func.HttpRequest) -> func.HttpResponse:
         )
     except Exception as e:
         import traceback
+        logging.error(f"TestSharePoint error: {traceback.format_exc()}")
         return func.HttpResponse(
-            json.dumps({
-                "error": str(e),
-                "traceback": traceback.format_exc()
-            }),
+            json.dumps({"error": "An internal error occurred"}),
             mimetype="application/json",
             status_code=500
         )
@@ -164,11 +174,9 @@ def ListDocuments(req: func.HttpRequest) -> func.HttpResponse:
         )
     except Exception as e:
         import traceback
+        logging.error(f"ListDocuments error: {traceback.format_exc()}")
         return func.HttpResponse(
-            json.dumps({
-                "error": str(e),
-                "traceback": traceback.format_exc()
-            }),
+            json.dumps({"error": "An internal error occurred"}),
             mimetype="application/json",
             status_code=500
         )

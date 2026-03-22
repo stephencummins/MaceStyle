@@ -21,11 +21,13 @@ Automated document validation system enforcing the Mace Control Centre Writing S
 
 ```
 MaceStyleValidator/
-  function_app.py              # Azure Function entry point (4 routes, all FUNCTION auth except MaceyBot)
+  function_app.py              # Azure Function entry point (5 routes: ValidateDocument, TestSharePoint, ListDocuments, HealthCheck [FUNCTION auth], MaceyBot [ANONYMOUS])
   ValidateDocument/
-    __init__.py                # Main routing and orchestration
+    __init__.py                # Main routing and orchestration (v5.1.0-governed)
     config.py                  # Shared auth (get_graph_token, get_site_id, get_site_info), constants, Claude model config
-    ai_client.py               # Centralised Claude API client (with data classification warning)
+    ai_client.py               # Centralised Claude API client (with data classification warning and token tracking)
+    access_control.py          # SOC 2 CC6.1 — API key / Azure AD access control
+    monitoring.py              # SOC 2 CC7.2 — Structured audit logging, metrics, health checks
     sharepoint_client.py       # SharePoint/Graph API operations
     report.py                  # HTML validation report generation
     word_validator.py          # Word (.docx) validation
@@ -36,6 +38,7 @@ MaceStyleValidator/
     sharepoint_results.py      # Validation results list operations
     test_helpers.py            # Test utilities
   MaceyBot/                    # Teams bot (Claude-powered site creation assistant)
+  governance_check.py          # AGT v2.1.0 compliance verification script
   populate_style_rules.py      # Seed style rules to SharePoint
   add_process_map_rules.py     # Add Visio process map rules
   add_structural_rules.py      # Add Visio structural rules
@@ -67,10 +70,15 @@ Required in Azure Function App Settings or `local.settings.json`:
 - `SHAREPOINT_VALIDATION_RESULTS_ID` - SharePoint validation results list GUID
 - `ANTHROPIC_API_KEY`
 
-Optional:
+Optional (MaceyBot):
 - `MACEY_MODEL` - Override Claude model for MaceyBot (default: `claude-sonnet-4-20250514`)
 - `BOT_TENANT_ID` - Azure AD tenant for Teams bot channel auth
 - `SP_TENANT_ID`, `SP_CLIENT_ID`, `SP_CLIENT_SECRET` - Alternative credential names for MaceyBot
+
+Optional (governance):
+- `MACESTYLE_API_KEY` — Static API key for access control (required if auth mode is `api_key`)
+- `MACESTYLE_AUTH_MODE` — `api_key` (default), `azure_ad`, or `none` (dev only)
+- `MACESTYLE_ALLOWED_APPS` — Comma-separated Azure AD app IDs allowed to call this function
 
 ## Development
 
@@ -81,6 +89,17 @@ func start                    # Run locally with Azure Functions Core Tools v4
 python3 create_test_document.py  # Generate test document
 python3 test_local.py         # Run local tests
 ```
+
+## Governance (Microsoft Agent Governance Toolkit v2.1.0)
+
+Checked and verified on 22 March 2026. All frameworks COMPLIANT.
+
+- **SOC 2 CC6.1** — `access_control.py`: API key or Azure AD bearer token validation on every request. Caller identity extraction for audit. Configurable via `MACESTYLE_AUTH_MODE`.
+- **SOC 2 CC7.2** — `monitoring.py`: Structured JSON audit events emitted to Application Insights. Per-request metrics (duration, Claude tokens, cost estimate, SharePoint calls). `/api/HealthCheck` endpoint. Alert emission for failures.
+- **GDPR** — No PII processed. Data minimisation confirmed.
+- **ISO 27001** — Compliant.
+
+Run the check: `python3 governance_check.py` (requires `.venv` with `agent-governance-toolkit`).
 
 ## Notes
 

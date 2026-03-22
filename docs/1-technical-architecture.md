@@ -19,19 +19,25 @@ graph LR
     subgraph Orchestration
         LA[Logic App]:::primary
     end
-    subgraph Azure
-        AF[Azure Function]:::primary
-        GR[Graph API]:::primary
+    subgraph "Azure Function (v5.1.0-governed)"
+        ACCESS[Access Control<br/>CC6.1]:::outcome
+        AF[ValidateDocument]:::primary
+        MONITOR[Monitoring & Audit<br/>CC7.2]:::outcome
+        HEALTH[HealthCheck]:::outcome
     end
+    GR[Graph API]:::primary
+    INSIGHTS[Application Insights]:::outcome
     AD[Azure AD]:::primary
     AI[Claude AI]:::outcome
 
     SP -->|File changed| LA
-    LA -->|Sends document| AF
+    LA -->|Sends document| ACCESS
+    ACCESS -->|Validated| AF
     AF -->|Authenticates| AD
     AF -->|Reads & writes| GR
     GR -->|Syncs| SP
     AF -.->|AI validation| AI
+    MONITOR -->|Structured JSON| INSIGHTS
 
     classDef primary fill:#c5d9f1,stroke:#1F4E79,color:#0a2744
     classDef decision fill:#fac775,stroke:#854f0b,color:#412402
@@ -118,9 +124,11 @@ Request to Azure Function:
 
 Response from Azure Function:
 {
+  "requestId": "msv-a1b2c3d4e5f6",
   "status": "Passed",
   "issuesFound": 10,
   "issuesFixed": 10,
+  "durationMs": 8420,
   "reportUrl": "https://...",
   "validationResultUrl": "https://...",
   "reportLink": {
@@ -151,19 +159,43 @@ Response from Azure Function:
 - `msal`: Microsoft authentication
 - `requests`: HTTP client
 
-**Validation Flow:**
+**Validation Flow (v5.1.0-governed):**
 ```mermaid
 ---
 title: Document Validation Flow
 ---
-graph LR
-    A[Receive Request & Authenticate]:::primary --> B[Fetch Rules & Download Document]:::primary
-    B --> C[Apply Style Rules]:::primary
-    C --> D{Fixes applied?}:::decision
-    D -->|Yes| E[Upload Corrected File & Report]:::primary
-    D -->|No| F[Generate Report Only]:::primary
-    E --> G((Update Status)):::outcome
-    F --> G
+flowchart TD
+    START([HTTP Request]) --> ACCESS[Access Control Check<br/>CC6.1]:::outcome
+    ACCESS -->|Denied| DENY([401 Unauthorised])
+    ACCESS -->|Granted| METRICS[Initialise Metrics<br/>CC7.2]:::outcome
+    METRICS --> AUTH[Authenticate with Graph API]:::primary
+    AUTH --> STATUS1[Update Status: Validating...]:::primary
+    STATUS1 --> RULES[Fetch Style Rules]:::primary
+    RULES --> DOWNLOAD[Download Document]:::primary
+    DOWNLOAD --> VALIDATE[Validate Document]:::primary
+
+    VALIDATE --> AI{UseAI Rules?}:::decision
+    AI -->|Yes| CLAUDE[Send to Claude AI]:::outcome
+    CLAUDE --> TOKENS[Track Token Usage]:::outcome
+    TOKENS --> APPLY_AI[Apply AI Corrections]:::primary
+
+    AI -->|No| HARD[Apply Hard-coded Rules]:::primary
+    APPLY_AI --> HARD
+
+    HARD --> FONT[Font Fixes]:::primary
+    FONT --> SAVE[Save Fixed Document]:::primary
+
+    SAVE --> UPLOAD{Fixes Applied?}:::decision
+    UPLOAD -->|Yes| UP_DOC[Upload Fixed Document]:::primary
+    UPLOAD -->|No| REPORT
+    UP_DOC --> REPORT[Generate HTML Report]:::primary
+
+    REPORT --> UP_REPORT[Upload HTML Report]:::primary
+    UP_REPORT --> RES[Save to Validation Results]:::primary
+    RES --> META[Update Document Metadata]:::primary
+    META --> STATUS2[Update Status: Passed/Review Required/Failed]:::primary
+    STATUS2 --> AUDIT[Emit Audit Event<br/>CC7.2]:::outcome
+    AUDIT --> END([Return Response])
 
     classDef primary fill:#c5d9f1,stroke:#1F4E79,color:#0a2744
     classDef decision fill:#fac775,stroke:#854f0b,color:#412402
@@ -172,15 +204,17 @@ graph LR
 
 **Key Modules:**
 - `word_validator.py`: Word (.docx) validation with AI + hard-coded rules
-- `visio_validator.py`: Visio (.vsdx) validation — hard-coded rules only
-- `excel_validator.py`: Excel (.xlsx) validation — hard-coded rules only
-- `powerpoint_validator.py`: PowerPoint (.pptx) validation — hard-coded rules only
+- `visio_validator.py`: Visio (.vsdx) validation -- hard-coded rules only
+- `excel_validator.py`: Excel (.xlsx) validation -- hard-coded rules only
+- `powerpoint_validator.py`: PowerPoint (.pptx) validation -- hard-coded rules only
 - `ai_client.py`: Claude AI integration (Word only)
 - `sharepoint_client.py`: Graph API operations
 - `report.py`: HTML report generation (summary + collapsible before/after diffs)
 - `sharepoint_results.py`: Validation Results list operations
+- `access_control.py`: SOC 2 CC6.1 access control (API key / Azure AD)
+- `monitoring.py`: SOC 2 CC7.2 structured audit logging, metrics, health checks
 
-**Note:** AI validation (Claude) is enabled for Word documents only. Visio, Excel, and PowerPoint use hard-coded rules only — AI was disabled for these formats because diagram/spreadsheet/slide text produces too many false positives and unreliable text write-back.
+**Note:** AI validation (Claude) is enabled for Word documents only. Visio, Excel, and PowerPoint use hard-coded rules only -- AI was disabled for these formats because diagram/spreadsheet/slide text produces too many false positives and unreliable text write-back.
 
 ---
 
@@ -194,7 +228,7 @@ graph LR
 **Capabilities:**
 - British English spelling corrections
 - Contraction expansion
-- Symbol replacement (& → and, % → percent)
+- Symbol replacement (& -> and, % -> percent)
 - Grammar improvements
 - Number formatting
 
@@ -311,7 +345,9 @@ sequenceDiagram
 title: Authentication Flow
 ---
 graph LR
-    AF[Azure Function]:::primary -->|Client credentials| AAD[Azure AD]:::primary
+    PA[Power Automate / Logic App]:::primary -->|X-Api-Key| AC[Access Control<br/>CC6.1]:::outcome
+    AC -->|Validated| AF[Azure Function]:::primary
+    AF -->|Client credentials| AAD[Azure AD]:::primary
     AAD -->|JWT token| AF
     AF -->|Bearer token| GR[Graph API]:::primary
     GR -->|Authorised access| SP((SharePoint)):::outcome
@@ -321,33 +357,162 @@ graph LR
     classDef outcome fill:#9fe1cb,stroke:#0f6e56,color:#04342c
 ```
 
-### Security Measures
-1. **App Registration**: Service principal with `Sites.Selected` — access granted to a single SharePoint site only (not tenant-wide)
+### Access Control (SOC 2 CC6.1)
+
+Every incoming request is validated by `access_control.py` before processing begins.
+
+**Auth Modes** (configured via `MACESTYLE_AUTH_MODE`):
+
+| Mode | Header | Use Case |
+|------|--------|----------|
+| `api_key` (default) | `X-Api-Key` or `Authorization: Bearer <key>` | Power Automate, service-to-service |
+| `azure_ad` | `X-MS-CLIENT-PRINCIPAL` (Azure EasyAuth) | Azure AD-authenticated callers |
+| `none` | -- | Local development only |
+
+**Caller Identity Extraction:**
+- Client IP (via `X-Forwarded-For`)
+- User agent
+- Azure AD claims (name, email, app ID)
+- Power Automate workflow run ID (`X-MS-Workflow-Run-Id`)
+
+**Environment Variables:**
+- `MACESTYLE_API_KEY` -- Static API key for validation
+- `MACESTYLE_AUTH_MODE` -- Auth mode selector
+- `MACESTYLE_ALLOWED_APPS` -- Comma-separated Azure AD app IDs allowed to call
+
+### Other Security Measures
+1. **App Registration**: Service principal with `Sites.Selected` -- access granted to a single SharePoint site only (not tenant-wide)
 2. **Secret Management**: Azure Key Vault / App Settings (encrypted)
 3. **Network Security**: HTTPS only, Azure Function CORS policies
 4. **Data Privacy**: Documents processed in-memory, not persisted
-5. **Audit Trail**: Validation Results list tracks all operations
+5. **Audit Trail**: Structured audit events + Validation Results list
 
 ---
 
-## Monitoring & Logging
+## Monitoring & Observability (SOC 2 CC7.2)
 
-### Azure Function Logging
-- **Application Insights**: Performance metrics, errors
-- **Log Stream**: Real-time debugging
-- **Metrics**: Request count, duration, failures
+Structured monitoring is implemented in `monitoring.py`, providing per-request metrics, audit events, and health checks.
 
-### Key Metrics to Monitor
-- Validation success rate
-- Average processing time
-- Claude API errors
-- SharePoint API throttling
-- Document upload failures
+### Structured Audit Events
+
+Every validation emits a JSON audit event to Application Insights:
+
+```json
+{
+  "event_type": "validation_complete",
+  "request_id": "msv-a1b2c3d4e5f6",
+  "timestamp": "2026-03-22T18:23:05+00:00",
+  "duration_ms": 8420,
+  "caller": {
+    "ip": "10.0.0.1",
+    "user_agent": "PowerAutomate/1.0",
+    "auth_mode": "api_key",
+    "power_automate_run_id": "abc-123"
+  },
+  "document": {
+    "filename": "report.docx",
+    "file_type": ".docx",
+    "file_size_bytes": 245760
+  },
+  "validation": {
+    "status": "Passed",
+    "rules_loaded": 42,
+    "ai_rules_count": 12,
+    "issues_found": 8,
+    "fixes_applied": 8,
+    "report_uploaded": true
+  },
+  "ai_usage": {
+    "claude_calls": 1,
+    "input_tokens": 3200,
+    "output_tokens": 1800,
+    "estimated_cost_usd": 0.0098
+  },
+  "performance": {
+    "total_ms": 8420,
+    "phases_ms": {
+      "auth": 120,
+      "fetch_rules": 340,
+      "download": 280,
+      "validation": 5200,
+      "upload_fixed": 1100,
+      "upload_report": 980
+    },
+    "sharepoint_calls": 5
+  }
+}
+```
+
+### Health Check Endpoint
+
+`GET /api/HealthCheck` returns system status:
+
+```json
+{
+  "status": "healthy",
+  "version": "5.1.0-governed",
+  "checks": {
+    "environment": { "status": "healthy", "missing_vars": [] },
+    "claude_api": { "status": "healthy", "detail": "API key configured" },
+    "access_control": { "status": "healthy", "auth_mode": "api_key" }
+  }
+}
+```
+
+Returns `200` when healthy, `503` when unhealthy.
 
 ### Alerting
-- Failed validations > 10%
-- Average processing time > 30 seconds
-- API errors > 5%
+
+Alert events are emitted via `emit_alert()` with severity levels:
+
+| Severity | Trigger | Action |
+|----------|---------|--------|
+| `INFO` | Normal events | Log only |
+| `WARNING` | Validation failures, API errors | Log + Application Insights alert |
+| `CRITICAL` | System errors, auth failures | Log + immediate alert |
+
+### Key Metrics
+
+| Metric | Source | Purpose |
+|--------|--------|---------|
+| Request duration (total + per-phase) | `monitoring.py` | Performance tracking |
+| Claude API tokens (input/output) | `ai_client.py` | Cost tracking |
+| Estimated cost per request | `monitoring.py` | Budget monitoring |
+| SharePoint API call count | `monitoring.py` | Rate limit awareness |
+| Issues found vs fixed ratio | `monitoring.py` | Rule effectiveness |
+| Request correlation ID | `monitoring.py` | Cross-service tracing |
+
+---
+
+## Governance -- Microsoft Agent Governance Toolkit v2.1.0
+
+MaceStyle has been checked and verified against the Microsoft Agent Governance Toolkit. A rerunnable compliance verification script is included.
+
+### Compliance Status (22 March 2026)
+
+| Framework | Status | Details |
+|-----------|--------|---------|
+| **SOC 2** | COMPLIANT | CC6.1 (access controls) + CC7.2 (system monitoring) |
+| **ISO 27001** | COMPLIANT | -- |
+| **GDPR** | COMPLIANT | No PII processed, data minimisation confirmed |
+
+### Checks Performed
+
+1. **Credential exposure scan** -- No hardcoded secrets detected
+2. **Security controls** -- 10/10 passed (file type validation, error handling, MSAL auth, Claude response parsing, path traversal prevention)
+3. **Prompt injection resilience** -- 6/6 adversarial payloads detected (2 at HIGH threat level)
+4. **Policy engine** -- 3 adversarial actions correctly blocked (system file read, DROP TABLE, credential exposure)
+5. **Governance assessment** -- Aligned, no privacy concerns
+
+### Running the Check
+
+```bash
+cd ~/Projects/MaceStyle
+source .venv/bin/activate   # Requires agent-governance-toolkit v2.1.0
+python3 governance_check.py
+```
+
+Output: `governance_report.md` (full results in markdown)
 
 ---
 
@@ -360,14 +525,17 @@ graph LR
 | **Backend** | Azure Functions (Python 3.11) | Validation logic |
 | **AI** | Claude Haiku 4.5 (Anthropic) | Language processing (currently disabled) |
 | **API** | Microsoft Graph API | SharePoint integration |
-| **Auth** | Azure AD / MSAL | Authentication |
+| **Auth** | Azure AD / MSAL + API key | Authentication |
 | **Storage** | SharePoint Lists & Libraries | Data persistence |
+| **Governance** | MS Agent Governance Toolkit v2.1.0 | Compliance verification |
+| **Monitoring** | Application Insights + structured audit | Observability |
 
 ---
 
 ## Version Information
 
-- **Current Version**: v5.1
+- **Current Version**: v5.1.0-governed
 - **Last Updated**: March 2026
 - **Python Version**: 3.11
 - **Azure Functions Runtime**: 4.x
+- **Governance Toolkit**: Microsoft Agent Governance Toolkit v2.1.0

@@ -73,6 +73,11 @@ def call_claude(ai_rules, document_text):
         messages=[{"role": "user", "content": prompt}]
     )
 
+    # Track token usage for monitoring (SOC 2 CC7.2)
+    usage = getattr(response, 'usage', None)
+    if usage:
+        logging.info(f"Claude tokens — input: {usage.input_tokens}, output: {usage.output_tokens}")
+
     response_text = response.content[0].text
     json_start = response_text.find('{')
     json_end = response_text.rfind('}') + 1
