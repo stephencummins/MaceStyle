@@ -5,7 +5,7 @@ import requests
 from io import BytesIO
 from urllib.parse import quote
 from datetime import datetime, timezone
-from .config import get_site_info, DOC_LIBRARY_LIST_ID
+from .config import get_site_info, get_style_rules_token, get_style_rules_site_info, DOC_LIBRARY_LIST_ID
 
 
 def get_site_id(token):
@@ -20,8 +20,14 @@ def get_site_id(token):
 
 def fetch_validation_rules(token):
     """Fetch rules from SharePoint 'Style Rules' list"""
-    site_id = get_site_id(token)
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    rules_token = get_style_rules_token()
+    rules_site_info = get_style_rules_site_info()
+    headers = {"Authorization": f"Bearer {rules_token}", "Accept": "application/json"}
+
+    site_url = f"https://graph.microsoft.com/v1.0/sites/{rules_site_info['hostname']}:{rules_site_info['site_path']}"
+    site_response = requests.get(site_url, headers=headers)
+    site_response.raise_for_status()
+    site_id = site_response.json()["id"]
 
     list_url = f"https://graph.microsoft.com/v1.0/sites/{site_id}/lists/Style Rules/items?expand=fields"
     response = requests.get(list_url, headers=headers)
