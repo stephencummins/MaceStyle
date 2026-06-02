@@ -258,6 +258,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         else:
             description = f"{final_status} — no issues found"
 
+        from datetime import datetime, timezone
         response_data = {
             "requestId": request_id,
             "status": final_status,
@@ -274,7 +275,15 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "validationResultLink": {
                 "Description": "View Validation Result",
                 "Url": validation_result_info['list_item_url']
-            } if validation_result_info else None
+            } if validation_result_info else None,
+            "validationResult": {
+                "Title": file_name,
+                "FileName": file_name,
+                "ValidationDate": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "Status": final_status,
+                "IssuesFound": issues_count,
+                "IssuesFixed": fixes_count
+            }
         }
 
         if result['fixes_applied']:
