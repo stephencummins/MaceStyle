@@ -283,7 +283,9 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 "Status": final_status,
                 "IssuesFound": issues_count,
                 "IssuesFixed": fixes_count
-            }
+            },
+            "reportFileName": f"{os.path.splitext(file_name)[0]}_ValidationReport.html",
+            "reportHtml": report_html
         }
 
         if result['fixes_applied']:
