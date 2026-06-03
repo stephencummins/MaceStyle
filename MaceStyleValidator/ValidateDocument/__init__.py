@@ -257,6 +257,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         issues_count = len(result['issues'])
         fixes_count = len(result['fixes_applied'])
         remaining_count = len(remaining)
+        # Total issues found = still-unfixed + auto-fixed (matches report.py's total_issues_found)
+        total_found = remaining_count + fixes_count
         if fixes_count > 0 and remaining_count == 0:
             description = f"{final_status} — {fixes_count} issue{'s' if fixes_count != 1 else ''} auto-fixed"
         elif fixes_count > 0:
@@ -271,7 +273,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             "requestId": request_id,
             "status": final_status,
             "description": description,
-            "issuesFound": issues_count,
+            "issuesFound": total_found,
             "issuesFixed": fixes_count,
             "durationMs": metrics.duration_ms,
             "reportUrl": report_url,
@@ -289,7 +291,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 "FileName": file_name,
                 "ValidationDate": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "Status": final_status,
-                "IssuesFound": issues_count,
+                "IssuesFound": total_found,
                 "IssuesFixed": fixes_count
             },
             "reportFileName": f"{os.path.splitext(file_name)[0]}_ValidationReport.html",
