@@ -6,6 +6,14 @@ import requests
 # Claude AI configuration
 # Toggle AI validation on/off. Set to True to re-enable Claude API calls.
 ENABLE_CLAUDE_AI = False
+
+# SharePoint write ownership.
+# When False (default), the Power Automate flow owns ALL SharePoint writes
+# (Validation Results item, report upload, ReportLink, doc properties/status)
+# and the function only validates + returns data. Set True to let the function
+# write directly (legacy behaviour) — but only if the flow's write actions are
+# removed, otherwise you get duplicate list items / report files.
+ENABLE_FUNCTION_SHAREPOINT_WRITES = False
 CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 CLAUDE_MAX_TOKENS = 8192
 CLAUDE_TEMPERATURE = 0.3

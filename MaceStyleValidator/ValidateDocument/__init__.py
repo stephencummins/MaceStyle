@@ -6,7 +6,7 @@ import os
 import base64
 from io import BytesIO
 
-from .config import get_graph_token
+from .config import get_graph_token, ENABLE_FUNCTION_SHAREPOINT_WRITES
 from .sharepoint_client import (
     get_site_id, fetch_validation_rules, download_file, upload_file,
     update_validation_status, update_drive_item_fields
@@ -67,11 +67,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         metrics.sharepoint_calls += 1
         logging.info(f'[{request_id}] Token acquired')
 
-        # 3. Update status to "Validating..."
-        try:
-            update_validation_status(token, item_id, "Validating...", None)
-        except Exception as e:
-            logging.warning(f"Could not set initial status: {e}")
+        # 3. Update status to "Validating..." (skipped when the flow owns writes)
+        if ENABLE_FUNCTION_SHAREPOINT_WRITES:
+            try:
+                update_validation_status(token, item_id, "Validating...", None)
+            except Exception as e:
+                logging.warning(f"Could not set initial status: {e}")
 
         # 4. Fetch validation rules
         with track_phase(metrics, "fetch_rules"):
@@ -151,12 +152,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         metrics.end_phase()
 
-        # 7. Upload fixed file if fixes were applied
-        if file_url and result['fixes_applied']:
+        # 7. Upload fixed file if fixes were applied (skipped when the flow owns writes)
+        if file_url and result['fixes_applied'] and ENABLE_FUNCTION_SHAREPOINT_WRITES:
             logging.info(f'[{request_id}] Uploading fixed document ({len(result["fixes_applied"])} fixes)...')
             with track_phase(metrics, "upload_fixed"):
                 _web_url, _item_id = upload_file(token, fixed_stream, file_url)
             metrics.sharepoint_calls += 1
+        elif result['fixes_applied'] and not ENABLE_FUNCTION_SHAREPOINT_WRITES:
+            logging.info(f'[{request_id}] Skipping fixed-file upload (flow owns writes); returning fixedFileContent')
         elif not file_url:
             logging.info(f'[{request_id}] Skipping upload (no file URL)')
         else:
@@ -175,60 +178,64 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         else:
             report_path = f"/Validation Reports/{report_filename}"
 
-        try:
-            with track_phase(metrics, "upload_report"):
-                report_url, report_drive_item_id = upload_file(token, report_stream, report_path)
-            metrics.sharepoint_calls += 1
-            metrics.report_uploaded = True
-            logging.info(f"[{request_id}] Report uploaded: {report_url}")
-        except Exception as e:
-            logging.error(f"[{request_id}] Failed to upload report: {e}")
+        if ENABLE_FUNCTION_SHAREPOINT_WRITES:
+            try:
+                with track_phase(metrics, "upload_report"):
+                    report_url, report_drive_item_id = upload_file(token, report_stream, report_path)
+                metrics.sharepoint_calls += 1
+                metrics.report_uploaded = True
+                logging.info(f"[{request_id}] Report uploaded: {report_url}")
+            except Exception as e:
+                logging.error(f"[{request_id}] Failed to upload report: {e}")
+        else:
+            logging.info(f"[{request_id}] Skipping report upload (flow owns writes); returning reportHtml")
 
-        # 9. Save validation result to SharePoint list
+        # 9. Save validation result to SharePoint list (skipped when the flow owns writes)
         validation_result_info = None
-        try:
-            site_id = get_site_id(token)
-            remaining = [i for i in result['issues'] if isinstance(i, dict)]
-            if len(remaining) == 0:
-                result_status = "Passed"
-            elif len(result['fixes_applied']) > 0:
-                result_status = "Review Required"
-            else:
-                result_status = "Failed"
+        if ENABLE_FUNCTION_SHAREPOINT_WRITES:
+            try:
+                site_id = get_site_id(token)
+                remaining = [i for i in result['issues'] if isinstance(i, dict)]
+                if len(remaining) == 0:
+                    result_status = "Passed"
+                elif len(result['fixes_applied']) > 0:
+                    result_status = "Review Required"
+                else:
+                    result_status = "Failed"
 
-            # Update report file metadata (ValidationStatus + counts)
-            if report_drive_item_id:
-                try:
-                    update_drive_item_fields(token, report_drive_item_id, {
-                        "ValidationStatus": result_status,
-                        "IssuesFound": len(result['issues']),
-                        "IssuesFixed": len(result['fixes_applied'])
-                    })
-                except Exception as e:
-                    logging.warning(f"Could not update report metadata: {e}")
+                # Update report file metadata (ValidationStatus + counts)
+                if report_drive_item_id:
+                    try:
+                        update_drive_item_fields(token, report_drive_item_id, {
+                            "ValidationStatus": result_status,
+                            "IssuesFound": len(result['issues']),
+                            "IssuesFixed": len(result['fixes_applied'])
+                        })
+                    except Exception as e:
+                        logging.warning(f"Could not update report metadata: {e}")
 
-            validation_result_info = save_validation_result(
-                token=token,
-                site_id=site_id,
-                filename=file_name,
-                issues_count=len(result['issues']),
-                fixes_count=len(result['fixes_applied']),
-                status=result_status,
-                html_report=report_html,
-                report_url=report_url
-            )
-            logging.info(f"Validation result saved: {validation_result_info['list_item_url']}")
+                validation_result_info = save_validation_result(
+                    token=token,
+                    site_id=site_id,
+                    filename=file_name,
+                    issues_count=len(result['issues']),
+                    fixes_count=len(result['fixes_applied']),
+                    status=result_status,
+                    html_report=report_html,
+                    report_url=report_url
+                )
+                logging.info(f"Validation result saved: {validation_result_info['list_item_url']}")
 
-            # Update document metadata with link to validation result
-            if file_url:
-                update_document_metadata(token, site_id, file_url, validation_result_info['list_item_url'])
-            elif item_id:
-                _update_metadata_by_item_id(token, site_id, item_id, validation_result_info['list_item_url'])
+                # Update document metadata with link to validation result
+                if file_url:
+                    update_document_metadata(token, site_id, file_url, validation_result_info['list_item_url'])
+                elif item_id:
+                    _update_metadata_by_item_id(token, site_id, item_id, validation_result_info['list_item_url'])
 
-        except Exception as e:
-            logging.error(f"Failed to save validation result: {e}")
+            except Exception as e:
+                logging.error(f"Failed to save validation result: {e}")
 
-        # 10. Update final validation status
+        # 10. Update final validation status (skipped when the flow owns writes)
         remaining = [i for i in result['issues'] if isinstance(i, dict)]
         if len(remaining) == 0:
             final_status = "Passed"
@@ -236,10 +243,11 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             final_status = "Review Required"
         else:
             final_status = "Failed"
-        try:
-            update_validation_status(token, item_id, final_status, report_url)
-        except Exception as e:
-            logging.warning(f"Could not set final status: {e}")
+        if ENABLE_FUNCTION_SHAREPOINT_WRITES:
+            try:
+                update_validation_status(token, item_id, final_status, report_url)
+            except Exception as e:
+                logging.warning(f"Could not set final status: {e}")
 
         # 11. Emit audit event and return response
         metrics.complete(status=final_status, issues=len(result['issues']), fixes=len(result['fixes_applied']))
