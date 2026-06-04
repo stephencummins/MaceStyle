@@ -166,7 +166,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             logging.info(f'[{request_id}] No fixes to upload')
 
         # 8. Generate and upload report
-        report_html = generate_report(file_name, result['issues'], result['fixes_applied'])
+        # Build an absolute, browser-openable URL to the source document for the report back-link.
+        # file_url is typically a server-relative path (FileRef, e.g. /sites/<site>/<lib>/<file>).
+        document_url = None
+        if file_url:
+            if file_url.startswith('http'):
+                document_url = file_url
+            else:
+                _host = os.environ.get('SHAREPOINT_SITE_URL', '').replace('https://', '').split('/')[0]
+                document_url = f"https://{_host}{file_url}" if _host else None
+        report_html = generate_report(file_name, result['issues'], result['fixes_applied'], document_url=document_url)
         report_url = None
         report_drive_item_id = None
 

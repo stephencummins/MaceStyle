@@ -1,6 +1,10 @@
 """HTML validation report generation with Mace branding"""
 from datetime import datetime, timezone
 
+# MaceWay Control Centre logo, served from the site's SiteAssets library.
+# Renders for authenticated Mace viewers (reports are opened from SharePoint).
+LOGO_URL = "https://mace365.sharepoint.com/sites/MaceWayControlCentre/SiteAssets/MaceWay-Logo.png"
+
 
 def _escape_html(text):
     """Escape HTML special characters"""
@@ -9,13 +13,14 @@ def _escape_html(text):
     return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
 
 
-def generate_report(file_name, issues, fixes_applied):
+def generate_report(file_name, issues, fixes_applied, document_url=None):
     """Generate validation report as HTML with Mace branding.
 
     Args:
         file_name: Name of the validated document.
         issues: List of dicts with keys: rule_name, rule_type, description, location, priority.
         fixes_applied: List of dicts with keys: rule_name, rule_type, found_value, fixed_value, location.
+        document_url: Absolute URL of the source document; if set, the "Document:" line links back to it.
     """
     remaining_issues = [i for i in issues if isinstance(i, dict)]
     remaining_count = len(remaining_issues)
@@ -33,6 +38,14 @@ def generate_report(file_name, issues, fixes_applied):
         status_color = "#dc3545"
 
     validation_time = datetime.now(timezone.utc).strftime('%d %B %Y at %H:%M:%S UTC')
+
+    # Source document back-link for the header (falls back to plain text)
+    if document_url:
+        document_line = (f'<strong>Document:</strong> '
+                         f'<a href="{_escape_html(document_url)}" target="_blank" '
+                         f'style="color:#fff;text-decoration:underline;">{_escape_html(file_name)}</a>')
+    else:
+        document_line = f'<strong>Document:</strong> {_escape_html(file_name)}'
 
     # Build description text
     if fixes_count > 0 and remaining_count == 0:
@@ -155,11 +168,19 @@ def generate_report(file_name, issues, fixes_applied):
             line-height: 1.5;
         }}
         .header {{
-            background: linear-gradient(135deg, #1F4E79 0%, #1671CB 100%);
+            background: #797574;
             color: #fff;
             padding: 32px;
             border-radius: 8px;
             margin-bottom: 24px;
+        }}
+        .brand {{
+            margin-bottom: 18px;
+        }}
+        .site-logo {{
+            height: 52px;
+            width: auto;
+            display: block;
         }}
         .header h1 {{
             font-size: 22px;
@@ -192,10 +213,10 @@ def generate_report(file_name, issues, fixes_applied):
         }}
         .summary h2 {{
             font-size: 16px;
-            color: #1F4E79;
+            color: #4a4a4a;
             margin-bottom: 16px;
             padding-bottom: 8px;
-            border-bottom: 2px solid #1F4E79;
+            border-bottom: 2px solid #4a4a4a;
         }}
         .summary-grid {{
             display: grid;
@@ -207,12 +228,12 @@ def generate_report(file_name, issues, fixes_applied):
             padding: 18px;
             border-radius: 6px;
             text-align: center;
-            border-left: 4px solid #1F4E79;
+            border-left: 4px solid #4a4a4a;
         }}
         .summary-card .number {{
             font-size: 32px;
             font-weight: 700;
-            color: #1F4E79;
+            color: #4a4a4a;
             margin-bottom: 4px;
         }}
         .summary-card .label {{
@@ -230,11 +251,11 @@ def generate_report(file_name, issues, fixes_applied):
         }}
         .section h2 {{
             font-size: 16px;
-            color: #1F4E79;
+            color: #4a4a4a;
             margin-top: 0;
             margin-bottom: 16px;
             padding-bottom: 8px;
-            border-bottom: 2px solid #1F4E79;
+            border-bottom: 2px solid #4a4a4a;
         }}
         .passed-section {{
             border-left: 4px solid #28a745;
@@ -262,7 +283,7 @@ def generate_report(file_name, issues, fixes_applied):
             font-size: 13px;
         }}
         thead th {{
-            background: #1F4E79;
+            background: #4a4a4a;
             color: #fff;
             padding: 10px 12px;
             text-align: left;
@@ -283,8 +304,8 @@ def generate_report(file_name, issues, fixes_applied):
         .rule-type-badge {{
             display: inline-block;
             padding: 2px 8px;
-            background: #e8f0fe;
-            color: #1671CB;
+            background: #ededed;
+            color: #767676;
             border-radius: 10px;
             font-size: 11px;
             font-weight: 600;
@@ -292,7 +313,7 @@ def generate_report(file_name, issues, fixes_applied):
         .diff-before {{ background: #ffeef0; text-decoration: line-through; color: #b31d28; padding: 2px 4px; }}
         .diff-after {{ background: #e6ffec; color: #22863a; padding: 2px 4px; }}
         details {{ margin-bottom: 8px; }}
-        summary {{ cursor: pointer; font-weight: 600; color: #1F4E79; padding: 6px 0; }}
+        summary {{ cursor: pointer; font-weight: 600; color: #4a4a4a; padding: 6px 0; }}
         .footer {{
             text-align: center;
             margin-top: 28px;
@@ -300,16 +321,19 @@ def generate_report(file_name, issues, fixes_applied):
             color: #999;
             font-size: 11px;
         }}
-        .footer span {{ color: #1F4E79; font-weight: 600; }}
+        .footer span {{ color: #4a4a4a; font-weight: 600; }}
     </style>
 </head>
 <body>
     <div class="header">
+        <div class="brand">
+            <img class="site-logo" src="{LOGO_URL}" alt="MaceWay Control Centre">
+        </div>
         <h1>Mace Style Validation Report</h1>
         <span class="status-badge">{status}</span>
         <div class="meta-info">
             <div style="margin-top:8px;font-size:14px;opacity:1;">{description}</div>
-            <div style="margin-top:10px;"><strong>Document:</strong> {_escape_html(file_name)}</div>
+            <div style="margin-top:10px;">{document_line}</div>
             <div><strong>Validated:</strong> {validation_time}</div>
         </div>
     </div>
@@ -339,7 +363,7 @@ def generate_report(file_name, issues, fixes_applied):
 
     <div class="footer">
         <span>Mace Style Validator</span> &middot; Control Centre Writing Style Guide<br>
-        Powered by Azure Functions &amp; Claude AI
+        Powered by Azure Functions &amp; AI
     </div>
 </body>
 </html>"""
