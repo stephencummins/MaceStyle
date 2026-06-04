@@ -13,7 +13,7 @@ def _escape_html(text):
     return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
 
 
-def generate_report(file_name, issues, fixes_applied, document_url=None):
+def generate_report(file_name, issues, fixes_applied, document_url=None, library_url=None):
     """Generate validation report as HTML with Mace branding.
 
     Args:
@@ -21,6 +21,7 @@ def generate_report(file_name, issues, fixes_applied, document_url=None):
         issues: List of dicts with keys: rule_name, rule_type, description, location, priority.
         fixes_applied: List of dicts with keys: rule_name, rule_type, found_value, fixed_value, location.
         document_url: Absolute URL of the source document; if set, the "Document:" line links back to it.
+        library_url: Absolute URL of the document's library/folder; if set, a "Library:" link is shown.
     """
     remaining_issues = [i for i in issues if isinstance(i, dict)]
     remaining_count = len(remaining_issues)
@@ -42,10 +43,18 @@ def generate_report(file_name, issues, fixes_applied, document_url=None):
     # Source document back-link for the header (falls back to plain text)
     if document_url:
         document_line = (f'<strong>Document:</strong> '
-                         f'<a href="{_escape_html(document_url)}" target="_blank" '
+                         f'<a href="{_escape_html(document_url)}" target="_top" '
                          f'style="color:#fff;text-decoration:underline;">{_escape_html(file_name)}</a>')
     else:
         document_line = f'<strong>Document:</strong> {_escape_html(file_name)}'
+
+    # Document library link for the header (omitted when unavailable)
+    if library_url:
+        library_line = (f'<div style="margin-top:4px;"><strong>Library:</strong> '
+                        f'<a href="{_escape_html(library_url)}" target="_top" '
+                        f'style="color:#fff;text-decoration:underline;">Open document library</a></div>')
+    else:
+        library_line = ''
 
     # Build description text
     if fixes_count > 0 and remaining_count == 0:
@@ -334,6 +343,7 @@ def generate_report(file_name, issues, fixes_applied, document_url=None):
         <div class="meta-info">
             <div style="margin-top:8px;font-size:14px;opacity:1;">{description}</div>
             <div style="margin-top:10px;">{document_line}</div>
+            {library_line}
             <div><strong>Validated:</strong> {validation_time}</div>
         </div>
     </div>

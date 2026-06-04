@@ -167,15 +167,24 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
         # 8. Generate and upload report
         # Build an absolute, browser-openable URL to the source document for the report back-link.
-        # file_url is typically a server-relative path (FileRef, e.g. /sites/<site>/<lib>/<file>).
+        # Robust to whatever the flow sends: a full URL, a server-relative path (FileRef,
+        # /sites/<site>/...), or a site-relative path (/<lib>/...).
         document_url = None
         if file_url:
             if file_url.startswith('http'):
                 document_url = file_url
-            else:
-                _host = os.environ.get('SHAREPOINT_SITE_URL', '').replace('https://', '').split('/')[0]
-                document_url = f"https://{_host}{file_url}" if _host else None
-        report_html = generate_report(file_name, result['issues'], result['fixes_applied'], document_url=document_url)
+            elif file_url.startswith('/'):
+                _site = os.environ.get('SHAREPOINT_SITE_URL', '').rstrip('/')
+                _host = 'https://' + _site.split('//', 1)[-1].split('/', 1)[0] if _site else ''
+                _site_path = _site[len(_host):] if _host else ''  # e.g. /sites/MaceWayControlCentre
+                if _site_path and file_url.startswith(_site_path):
+                    document_url = _host + file_url          # already server-relative incl. /sites/<site>
+                elif _site:
+                    document_url = _site + file_url          # site-relative (no /sites/<site> prefix)
+        # Library = the document's parent folder
+        library_url = document_url.rsplit('/', 1)[0] if document_url else None
+        report_html = generate_report(file_name, result['issues'], result['fixes_applied'],
+                                      document_url=document_url, library_url=library_url)
         report_url = None
         report_drive_item_id = None
 
