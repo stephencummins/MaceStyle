@@ -7,6 +7,7 @@ from .enhanced_validators import (
     validate_language_rules,
     validate_punctuation_rules,
     validate_grammar_rules,
+    validate_capitalisation_rules,
     iter_all_paragraphs,
 )
 
@@ -114,6 +115,8 @@ def validate_word_document(file_stream, rules):
             result = validate_grammar_rules(doc, rule)
         elif rule['rule_type'] == 'Punctuation':
             result = validate_punctuation_rules(doc, rule)
+        elif rule['rule_type'] == 'Capitalisation':
+            result = validate_capitalisation_rules(doc, rule)
 
         if result:
             for item in result.get('issues', []):

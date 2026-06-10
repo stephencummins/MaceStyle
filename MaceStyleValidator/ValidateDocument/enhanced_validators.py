@@ -436,6 +436,190 @@ def check_numbers(doc, rule):
     return {'issues': issues, 'fixes': fixes, 'changes': changes}
 
 # ============================================
+# GENERIC REGEX HELPERS
+# ============================================
+
+def _iter_runs(doc):
+    """Yield (paragraph_index, run) for every non-empty run, tables included."""
+    for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
+        for run in paragraph.runs:
+            if run.text:
+                yield para_idx, run
+
+
+def _flag_regex(doc, pattern, label):
+    """Detection-only: count regex matches and report them as an issue."""
+    count = sum(len(pattern.findall(run.text)) for _idx, run in _iter_runs(doc))
+    issues = [f"Found {count} instance(s): {label}"] if count else []
+    return {'issues': issues, 'fixes': [], 'changes': []}
+
+
+def _replace_regex(doc, rule, pattern, repl, label):
+    """Replace regex matches when the rule auto-fixes; otherwise just flag them.
+    `repl` may be a string or a callable (re.sub semantics)."""
+    issue_count = 0
+    fix_count = 0
+    changes = []
+    auto = rule.get('auto_fix')
+    for para_idx, run in _iter_runs(doc):
+        matches = pattern.findall(run.text)
+        if not matches:
+            continue
+        issue_count += len(matches)
+        if auto:
+            before = run.text
+            run.text = pattern.sub(repl, run.text)
+            if run.text != before:
+                changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
+                fix_count += len(matches)
+    issues = [f"Found {issue_count} instance(s): {label}"] if (issue_count and not auto) else []
+    fixes = [f"Fixed {fix_count} instance(s): {label}"] if fix_count else []
+    return {'issues': issues, 'fixes': fixes, 'changes': changes}
+
+
+# ============================================
+# WORDY-PHRASE REPLACEMENTS (PhraseReplace_*)
+# ============================================
+
+# CheckValue -> the wordy phrase to detect. The concise replacement comes from
+# the rule's ExpectedValue. These rules are detection-only (auto_fix=False) in
+# the live list, but _replace_regex honours auto_fix if that changes.
+PHRASE_REPLACE_PHRASES = {
+    'PhraseReplace_atpresenttime': 'at the present time',
+    'PhraseReplace_conductinvestigation': 'conduct an investigation of',
+    'PhraseReplace_commence': 'commence',
+    'PhraseReplace_despitethefact': 'despite the fact that',
+    'PhraseReplace_duringthetime': 'during the time that',
+    'PhraseReplace_duetothefact': 'due to the fact that',
+    'PhraseReplace_forthepurpose': 'for the purpose of',
+    'PhraseReplace_inorderto': 'in order to',
+    'PhraseReplace_inthecourseof': 'in the course of',
+    'PhraseReplace_intheeventof': 'in the event of',
+    'PhraseReplace_vicinity': 'in the vicinity of',
+    'PhraseReplace_initiateprep': 'initiate the preparation of',
+    'PhraseReplace_isapplicable': 'is applicable',
+    'PhraseReplace_makeadecision': 'make a decision',
+    'PhraseReplace_mostofthetime': 'most of the time',
+    'PhraseReplace_voluntarybasis': 'on a voluntary basis',
+    'PhraseReplace_annualbasis': 'on an annual basis',
+    'PhraseReplace_priorto': 'prior to',
+    'PhraseReplace_providedescription': 'provide a description of',
+    'PhraseReplace_subsequentto': 'subsequent to',
+    'PhraseReplace_takeintoconsideration': 'take into consideration',
+    'PhraseReplace_majority': 'the majority',
+}
+
+
+def _phrase_pattern(phrase):
+    """Word-bounded, case-insensitive, whitespace-flexible pattern for a phrase."""
+    return re.compile(r'\b' + r'\s+'.join(re.escape(w) for w in phrase.split()) + r'\b', re.IGNORECASE)
+
+
+def check_phrase_replace(doc, rule):
+    phrase = PHRASE_REPLACE_PHRASES.get(rule['check_value'])
+    if not phrase:
+        return {'issues': [], 'fixes': [], 'changes': []}
+    suggestion = (rule.get('expected_value') or '').strip()
+    label = f"wordy phrase '{phrase}'" + (f" — use '{suggestion}'" if suggestion else '')
+    pattern = _phrase_pattern(phrase)
+    if rule.get('auto_fix') and suggestion and '/' not in suggestion:
+        return _replace_regex(doc, rule, pattern, suggestion, label)
+    return _flag_regex(doc, pattern, label)
+
+
+# ============================================
+# OTHER SIMPLE LANGUAGE / PUNCTUATION CHECKS
+# ============================================
+
+_OFFON_MAP = {'off-site': 'offsite', 'on-line': 'online', 'on-site': 'onsite', 'off-line': 'offline'}
+
+
+def check_simple_language(doc, rule):
+    cv = rule['check_value']
+    if cv == 'ProximityRedundant':
+        return _flag_regex(doc, re.compile(r'\bclose\s+proximity\b', re.I),
+                           "'close proximity' is redundant — use 'proximity'")
+    if cv == 'NoMinMaxApprox':
+        return _flag_regex(doc, re.compile(r'\b(?:min|max|approx)\.', re.I),
+                           "abbreviated minimum/maximum/approximately — spell out in full")
+    if cv == 'ForecastPastTense':
+        return _flag_regex(doc, re.compile(r'\bforecasted\b', re.I),
+                           "'forecasted' — use 'forecast' as the past tense")
+    if cv == 'Constructability':
+        return _replace_regex(doc, rule, re.compile(r'\bConstructibility\b', re.I),
+                              'Constructability', "'Constructibility' — use 'Constructability'")
+    return {'issues': [], 'fixes': [], 'changes': []}
+
+
+def check_simple_punctuation(doc, rule):
+    cv = rule['check_value']
+    if cv == 'NoDoubleSpaces':
+        return _replace_regex(doc, rule, re.compile(r'  +'), ' ',
+                              "double spaces — use a single space")
+    if cv == 'NoHyphenInSitu':
+        return _replace_regex(doc, rule, re.compile(r'\b(in|ex)-situ\b', re.I),
+                              lambda m: f"{m.group(1)} situ", "hyphenated 'in/ex situ' — remove hyphen")
+    if cv == 'NoHyphenOffOn':
+        return _replace_regex(doc, rule, re.compile(r'\b(off-site|on-line|on-site|off-line)\b', re.I),
+                              lambda m: _OFFON_MAP[m.group(1).lower()],
+                              "hyphenated offsite/online/onsite/offline — remove hyphen")
+    if cv == 'AvoidAndOr':
+        return _flag_regex(doc, re.compile(r'\band\s*/\s*or\b', re.I),
+                           "'and/or' — use 'X or Y or both'")
+    return {'issues': [], 'fixes': [], 'changes': []}
+
+
+# ============================================
+# CAPITALISATION CHECKS
+# ============================================
+
+_REF_CODE_RE = re.compile(r'\b[A-Za-z0-9]{2,}(?:-[A-Za-z0-9]{2,}){2,}\b')
+
+
+def _looks_like_ref_code(token):
+    """A hyphenated token is treated as a reference code only if at least one
+    segment is all-uppercase or all-digits (so 'state-of-the-art' is ignored)."""
+    segs = token.split('-')
+    return any(s.isupper() or s.isdigit() for s in segs)
+
+
+def check_reference_code_case(doc, rule):
+    issues = []
+    fixes = []
+    changes = []
+    issue_count = 0
+    fix_count = 0
+    auto = rule.get('auto_fix')
+
+    for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
+        for run in paragraph.runs:
+            if not run.text:
+                continue
+            mixed = [m.group(0) for m in _REF_CODE_RE.finditer(run.text)
+                     if _looks_like_ref_code(m.group(0)) and any(c.islower() for c in m.group(0))]
+            if not mixed:
+                continue
+            issue_count += len(mixed)
+            if auto:
+                before = run.text
+
+                def _upper(m):
+                    tok = m.group(0)
+                    return tok.upper() if (_looks_like_ref_code(tok) and any(c.islower() for c in tok)) else tok
+
+                run.text = _REF_CODE_RE.sub(_upper, run.text)
+                if run.text != before:
+                    changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
+                    fix_count += len(mixed)
+
+    if issue_count and not auto:
+        issues.append(f"Found {issue_count} reference code(s) not fully uppercase")
+    if fix_count:
+        fixes.append(f"Uppercased {fix_count} reference code(s)")
+    return {'issues': issues, 'fixes': fixes, 'changes': changes}
+
+
+# ============================================
 # MAIN DISPATCHER
 # ============================================
 
@@ -447,8 +631,12 @@ def validate_language_rules(doc, rule):
         return check_british_spelling(doc, rule)
     elif check_value.startswith('NoContraction_'):
         return check_contractions(doc, rule)
+    elif check_value.startswith('PhraseReplace_'):
+        return check_phrase_replace(doc, rule)
     elif check_value in ['Word_toward', 'AvoidEtc', 'AvoidShould']:
         return check_word_choice(doc, rule)
+    elif check_value in ['ProximityRedundant', 'NoMinMaxApprox', 'ForecastPastTense', 'Constructability']:
+        return check_simple_language(doc, rule)
     else:
         logging.warning(f"Unknown language check: {check_value}")
         return {'issues': [], 'fixes': []}
@@ -461,8 +649,26 @@ def validate_punctuation_rules(doc, rule):
         return check_symbols(doc, rule)
     elif check_value == 'NumberCommas':
         return check_numbers(doc, rule)
+    elif check_value in ['NoDoubleSpaces', 'NoHyphenInSitu', 'NoHyphenOffOn', 'AvoidAndOr']:
+        return check_simple_punctuation(doc, rule)
     else:
         logging.info(f"Punctuation check '{check_value}' not yet implemented")
+        return {'issues': [], 'fixes': []}
+
+
+def validate_capitalisation_rules(doc, rule):
+    """Dispatch capitalisation rule validation.
+
+    Most capitalisation rules in the list are context-dependent (job titles,
+    govt bodies, fields of study, emphasis) and need judgement, so only the
+    mechanical ones are implemented here. The rest are intentionally skipped
+    rather than risk false positives."""
+    check_value = rule['check_value']
+
+    if check_value == 'ReferenceCodeCase':
+        return check_reference_code_case(doc, rule)
+    else:
+        logging.info(f"Capitalisation check '{check_value}' not yet implemented")
         return {'issues': [], 'fixes': []}
 
 def validate_grammar_rules(doc, rule):
