@@ -620,6 +620,148 @@ def check_reference_code_case(doc, rule):
 
 
 # ============================================
+# DETERMINISTIC CHECKS (batch 2)
+# ============================================
+# Each maps to a check_value in the live 'Style Rules' list that previously had
+# no validator branch (and so was silently skipped). Detection-only unless the
+# rule's auto_fix is set and the correction is unambiguous. Deliberately
+# precision-first: rules needing linguistic judgement (homophones, tone, title
+# case, terminology consistency) are left for the AI path, not approximated here.
+
+_NONE = {'issues': [], 'fixes': [], 'changes': []}
+
+# -- Punctuation --
+_TIME_12H = re.compile(r'\b\d{1,2}(?::\d{2})?\s*[ap]\.?m\.?\b', re.I)
+_NUMERIC_DATE = re.compile(r'\b(?:\d{1,2}[/.]\d{1,2}[/.]\d{2,4}|\d{4}-\d{1,2}-\d{1,2})\b')
+_YEAR_RANGE = re.compile(r'\b(?:19|20)\d{2}\s*(?:[-–—]\s*(?:19|20)\d{2}|to\s+(?:19|20)\d{2})\b', re.I)
+_SLASH_SPACED = re.compile(r'\s*/\s*')
+_SLASH_WORDS = re.compile(r'\b[A-Za-z]{2,}/[A-Za-z]{2,}\b')
+_HYPHEN_IN = re.compile(r'\bin\s+(?:depth|house|line|place|service|text)\b', re.I)
+_HYPHEN_SUFFIX = re.compile(r'\b\w+\s+(?:related|type)\b', re.I)
+_HYPHEN_PREFIX = re.compile(r'\b(?:self|quasi)\s+[a-z]+\b', re.I)
+_WIDE = re.compile(r'\b(site|company|organisation|organization|nation|country|world|industry|estate|network|project|programme|system|region)\s+wide\b', re.I)
+_EGIE_COMMA_AFTER = re.compile(r'\b[ei]\.[ge]\.,')
+_EGIE_NO_PUNCT_BEFORE = re.compile(r'(?<=\w)\s+(?:e\.g\.|i\.e\.)', re.I)
+# "A, B and C" (one comma, then 'word and/or word') — a 3-item list missing the
+# serial comma. "A, B, and C" (already has it) does not match, since the word
+# before and/or is followed by a comma, not the conjunction.
+_OXFORD = re.compile(r'\b\w+,\s+\w+\s+(?:and|or)\s+\w+\b')
+_NUM_BELOW_TEN = re.compile(r'(?<![\w./:-])[1-9](?![\w./:%-])')
+_NUM_EXCL_PREFIX = re.compile(
+    r'\b(?:figure|fig|table|section|level|phase|stage|step|chapter|part|no|item|day|week|year|'
+    r'option|appendix|volume|grade|band|tier|class|type|page|version|rev|para|paragraph|clause|'
+    r'note|row|column|col|point|task|unit|zone|lane|gate)\.?\s*$', re.I)
+_UNIT_AFTER = re.compile(r'^\s*(?:%|mm|cm|km|kg|ml|pp|st|nd|rd|th|am|pm|m\b|g\b|l\b|t\b|x\b|:|/)', re.I)
+
+# -- Grammar --
+_SENT_EGIE = re.compile(r'(?:^|[.!?]\s+)(?:E\.g\.|I\.e\.)')
+_THE_CLIENT = re.compile(r'\bthe client\b', re.I)
+_ORG_SINGULAR = re.compile(
+    r"\bthe\s+(?:team|company|organisation|organization|department|committee|board|government|"
+    r"council|group|authority|contractor|client|firm|business)\s+"
+    r"(?:are|were|have|do|aren't|weren't|don't|haven't)\b", re.I)
+_EGIE = re.compile(r'\b(?:e\.g\.|i\.e\.)', re.I)
+_ETC = re.compile(r'\betc\b', re.I)
+
+# -- Language --
+_FEEL = re.compile(r'\bfeel(?:s|ing|t)?\b', re.I)
+_ABOVE_BELOW = re.compile(
+    r'\b(?:see|shown|noted|listed|described|mentioned|detailed|figure|table|stated|outlined|the)\s+'
+    r'(?:above|below)\b', re.I)
+_IMPERIAL = re.compile(
+    r'\b\d+(?:\.\d+)?\s*(?:feet|foot|inch(?:es)?|miles?|yards?|pounds?|lbs?|ounces?|gallons?|'
+    r'°?\s?fahrenheit|°F)\b', re.I)
+
+# -- Capitalisation (case-sensitive: match the lowercase form only) --
+_NATIONALITY = re.compile(
+    r'\b(?:welsh|english|scottish|irish|british|european|japanese|chinese|american|french|german|'
+    r'spanish|italian|russian|indian|australian|canadian|portuguese|dutch|greek|roman|latin|'
+    r'arabic|hebrew|nordic|asian|african)\b')
+_EMPHASIS_CAPS = re.compile(r'\b[A-Z]{2,}(?:\s+[A-Z]{2,})+\b')
+
+
+def _check_punct_egie(doc, rule):
+    n = sum(len(_EGIE_COMMA_AFTER.findall(r.text)) + len(_EGIE_NO_PUNCT_BEFORE.findall(r.text))
+            for _i, r in _iter_runs(doc))
+    return {'issues': [f"Found {n} instance(s): e.g./i.e. punctuation — comma/colon/hyphen before, "
+                       f"no comma after"] if n else [], 'fixes': [], 'changes': []}
+
+
+def _check_numbers_below_ten(doc, rule):
+    count = 0
+    for _idx, run in _iter_runs(doc):
+        text = run.text
+        for m in _NUM_BELOW_TEN.finditer(text):
+            if _NUM_EXCL_PREFIX.search(text[:m.start()]):
+                continue
+            if _UNIT_AFTER.match(text[m.end():]):
+                continue
+            count += 1
+    return {'issues': [f"Found {count} digit(s) below ten in running text — spell out (one to nine)"]
+            if count else [], 'fixes': [], 'changes': []}
+
+
+def _check_caption_no_period(doc, rule):
+    count = 0
+    for paragraph in iter_all_paragraphs(doc):
+        style = (paragraph.style.name or '') if paragraph.style else ''
+        if 'caption' in style.lower():
+            t = paragraph.text.rstrip()
+            if t.endswith('.') and not t.endswith('...'):
+                count += 1
+    return {'issues': [f"Found {count} caption(s) ending with a full stop — remove it"]
+            if count else [], 'fixes': [], 'changes': []}
+
+
+def _check_no_etc_with_egie(doc, rule):
+    count = sum(1 for p in iter_all_paragraphs(doc)
+                if _EGIE.search(p.text) and _ETC.search(p.text))
+    return {'issues': [f"Found {count} paragraph(s) using 'etc.' alongside e.g./i.e. — drop 'etc.'"]
+            if count else [], 'fixes': [], 'changes': []}
+
+
+def _check_proper_noun_derivations(doc, rule):
+    count = sum(len(_NATIONALITY.findall(r.text)) for _i, r in _iter_runs(doc))
+    return {'issues': [f"Found {count} lowercase proper-noun derivation(s) — capitalise "
+                       f"(e.g. 'welsh' to 'Welsh')"] if count else [], 'fixes': [], 'changes': []}
+
+
+# check_value -> handler. Detection-only handlers use _flag_regex; a couple
+# auto-fix where the live rule sets AutoFix and the correction is unambiguous.
+_LANGUAGE_CHECKS = {
+    'NoFeelTechnical': lambda d, r: _flag_regex(d, _FEEL, "'feel' in technical writing — use 'think'/'believe'/'consider'"),
+    'NoAboveBelow': lambda d, r: _flag_regex(d, _ABOVE_BELOW, "'above'/'below' cross-reference — cite the figure/table/section number"),
+    'PreferMetric': lambda d, r: _flag_regex(d, _IMPERIAL, "imperial unit — use metric where possible"),
+}
+_PUNCTUATION_CHECKS = {
+    'TimeFormat': lambda d, r: _flag_regex(d, _TIME_12H, "12-hour clock time — use 24-hour HH:MM (e.g. 09:00, 18:25)"),
+    'DateFormat_Text': lambda d, r: _flag_regex(d, _NUMERIC_DATE, "numeric date — use DD MONTH YYYY (e.g. 01 February 2015)"),
+    'DateFormat_Table': lambda d, r: _flag_regex(d, _NUMERIC_DATE, "numeric date — use DD-MMM-YYYY in tables (e.g. 28-Feb-2020)"),
+    'YearIntervalFormat': lambda d, r: _flag_regex(d, _YEAR_RANGE, "year range — use YYYY-YY (e.g. 2019-20)"),
+    'NoSpacesAroundSlash': lambda d, r: _replace_regex(d, r, _SLASH_SPACED, '/', "spaces around '/' — close up (e.g. km/s)"),
+    'AvoidForwardSlash': lambda d, r: _flag_regex(d, _SLASH_WORDS, "forward slash between words — use words to avoid ambiguity"),
+    'HyphenInWords': lambda d, r: _flag_regex(d, _HYPHEN_IN, "missing hyphen — e.g. 'in-depth', 'in-house', 'in-text'"),
+    'HyphenSuffixes': lambda d, r: _flag_regex(d, _HYPHEN_SUFFIX, "missing hyphen before -related/-type (e.g. 'quality-related')"),
+    'HyphenAlwaysPrefix': lambda d, r: _flag_regex(d, _HYPHEN_PREFIX, "missing hyphen after self-/quasi- (e.g. 'self-made')"),
+    'Hyphen_wide': lambda d, r: _replace_regex(d, r, _WIDE, lambda m: f"{m.group(1)}-wide", "missing hyphen before '-wide' (e.g. 'site-wide')"),
+    'PunctuationBeforeEgIe': _check_punct_egie,
+    'OxfordComma': lambda d, r: _flag_regex(d, _OXFORD, "list of 3+ items may be missing an Oxford comma before 'and'/'or'"),
+    'NumbersBelowTen': _check_numbers_below_ten,
+    'CaptionNoPeriod': _check_caption_no_period,
+}
+_GRAMMAR_CHECKS = {
+    'NoSentenceStartEgIe': lambda d, r: _flag_regex(d, _SENT_EGIE, "sentence starts with e.g./i.e. — rephrase (e.g. 'for example')"),
+    'NoEtcWithEgIe': _check_no_etc_with_egie,
+    'ClientNameNotTheClient': lambda d, r: _flag_regex(d, _THE_CLIENT, "'the client' — use the client's actual name"),
+    'OrgSingular': lambda d, r: _flag_regex(d, _ORG_SINGULAR, "organisation with plural verb — use the singular ('the team is')"),
+}
+_CAPITALISATION_CHECKS = {
+    'ProperNounDerivations': _check_proper_noun_derivations,
+    'NoEmphasisCaps': lambda d, r: _flag_regex(d, _EMPHASIS_CAPS, "consecutive ALL-CAPS words used for emphasis — use normal case"),
+}
+
+
+# ============================================
 # MAIN DISPATCHER
 # ============================================
 
@@ -637,6 +779,8 @@ def validate_language_rules(doc, rule):
         return check_word_choice(doc, rule)
     elif check_value in ['ProximityRedundant', 'NoMinMaxApprox', 'ForecastPastTense', 'Constructability']:
         return check_simple_language(doc, rule)
+    elif check_value in _LANGUAGE_CHECKS:
+        return _LANGUAGE_CHECKS[check_value](doc, rule)
     else:
         logging.warning(f"Unknown language check: {check_value}")
         return {'issues': [], 'fixes': []}
@@ -651,6 +795,8 @@ def validate_punctuation_rules(doc, rule):
         return check_numbers(doc, rule)
     elif check_value in ['NoDoubleSpaces', 'NoHyphenInSitu', 'NoHyphenOffOn', 'AvoidAndOr']:
         return check_simple_punctuation(doc, rule)
+    elif check_value in _PUNCTUATION_CHECKS:
+        return _PUNCTUATION_CHECKS[check_value](doc, rule)
     else:
         logging.info(f"Punctuation check '{check_value}' not yet implemented")
         return {'issues': [], 'fixes': []}
@@ -659,14 +805,16 @@ def validate_punctuation_rules(doc, rule):
 def validate_capitalisation_rules(doc, rule):
     """Dispatch capitalisation rule validation.
 
-    Most capitalisation rules in the list are context-dependent (job titles,
-    govt bodies, fields of study, emphasis) and need judgement, so only the
-    mechanical ones are implemented here. The rest are intentionally skipped
-    rather than risk false positives."""
+    Only mechanical capitalisation checks are implemented. Context-dependent
+    ones (job titles, govt bodies, fields of study, document/section titles)
+    need judgement and are left for the AI path rather than risk false
+    positives."""
     check_value = rule['check_value']
 
     if check_value == 'ReferenceCodeCase':
         return check_reference_code_case(doc, rule)
+    elif check_value in _CAPITALISATION_CHECKS:
+        return _CAPITALISATION_CHECKS[check_value](doc, rule)
     else:
         logging.info(f"Capitalisation check '{check_value}' not yet implemented")
         return {'issues': [], 'fixes': []}
@@ -677,6 +825,8 @@ def validate_grammar_rules(doc, rule):
 
     if check_value.startswith('NoContraction_'):
         return check_contractions(doc, rule)
+    elif check_value in _GRAMMAR_CHECKS:
+        return _GRAMMAR_CHECKS[check_value](doc, rule)
     else:
         logging.info(f"Grammar check '{check_value}' not yet implemented")
         return {'issues': [], 'fixes': []}

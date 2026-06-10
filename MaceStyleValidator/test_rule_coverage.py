@@ -160,11 +160,82 @@ def test_autofix():
     return all(oks)
 
 
+# Deterministic batch-2 checks. title == check_value. Mostly detection-only;
+# two auto-fix (NoSpacesAroundSlash, Hyphen_wide).
+NEW_CASES = [
+    {"rt": "Punctuation", "cv": "TimeFormat", "text": "The site opens at 9am each day."},
+    {"rt": "Punctuation", "cv": "DateFormat_Text", "text": "Issued on 01/02/2015 for review."},
+    {"rt": "Punctuation", "cv": "YearIntervalFormat", "text": "The 2019-2020 programme is approved."},
+    {"rt": "Punctuation", "cv": "NoSpacesAroundSlash", "text": "Velocity measured in km / s here.",
+     "fix_present": "km/s", "fix_absent": " / "},
+    {"rt": "Punctuation", "cv": "AvoidForwardSlash", "text": "Submit to client/contractor today."},
+    {"rt": "Punctuation", "cv": "HyphenInWords", "text": "An in depth review is required."},
+    {"rt": "Punctuation", "cv": "HyphenSuffixes", "text": "A quality related issue arose."},
+    {"rt": "Punctuation", "cv": "HyphenAlwaysPrefix", "text": "He is a self made leader."},
+    {"rt": "Punctuation", "cv": "Hyphen_wide", "text": "A site wide policy applies now.",
+     "fix_present": "site-wide", "fix_absent": "site wide"},
+    {"rt": "Punctuation", "cv": "PunctuationBeforeEgIe", "text": "Use tools e.g. drawings for this."},
+    {"rt": "Punctuation", "cv": "OxfordComma", "text": "We need bricks, mortar and sand here."},
+    {"rt": "Punctuation", "cv": "NumbersBelowTen", "text": "There are 3 teams on the site."},
+    {"rt": "Punctuation", "cv": "CaptionNoPeriod", "text": "Figure 1 The site location plan.",
+     "caption": True},
+    {"rt": "Grammar", "cv": "NoSentenceStartEgIe", "text": "E.g. the north wing is complete."},
+    {"rt": "Grammar", "cv": "NoEtcWithEgIe", "text": "Bring tools e.g. drills, etc. today."},
+    {"rt": "Grammar", "cv": "ClientNameNotTheClient", "text": "Send it to the client for sign-off."},
+    {"rt": "Grammar", "cv": "OrgSingular", "text": "The team are reviewing it now."},
+    {"rt": "Language", "cv": "NoFeelTechnical", "text": "We feel the design is adequate."},
+    {"rt": "Language", "cv": "NoAboveBelow", "text": "See above for the full details."},
+    {"rt": "Language", "cv": "PreferMetric", "text": "The access route is 5 miles long."},
+    {"rt": "Capitalisation", "cv": "ProperNounDerivations", "text": "The welsh survey was completed."},
+    {"rt": "Capitalisation", "cv": "NoEmphasisCaps", "text": "This is VERY IMPORTANT indeed."},
+]
+
+
+def _new_rule(case, auto_fix):
+    return {"title": case["cv"], "rule_type": case["rt"], "doc_type": "Word",
+            "check_value": case["cv"], "expected_value": "", "auto_fix": auto_fix,
+            "use_ai": False, "priority": 10}
+
+
+def _build_new_doc():
+    doc = Document()
+    for case in NEW_CASES:
+        if case.get("caption"):
+            try:
+                doc.add_paragraph(case["text"], style="Caption")
+            except KeyError:
+                doc.add_paragraph(case["text"])  # template lacks Caption style
+        else:
+            doc.add_paragraph(case["text"])
+    stream = BytesIO()
+    doc.save(stream)
+    stream.seek(0)
+    return stream
+
+
+def test_new_checks():
+    """Batch-2 deterministic checks: detection for all, rewrite for the fixable two."""
+    print("\n[3] Deterministic batch-2 — newly implemented checks fire\n")
+    det = validate_word_document(_build_new_doc(), [_new_rule(c, False) for c in NEW_CASES])
+    fired = {i.get("rule_name") for i in det["issues"]} | {f.get("rule_name") for f in det["fixes_applied"]}
+    oks = [_line(c["cv"] in fired, f"{c['cv']:24}  {c['text']}") for c in NEW_CASES]
+
+    # Auto-fix rewrite for the two fixable checks.
+    fix = validate_word_document(_build_new_doc(), [_new_rule(c, True) for c in NEW_CASES])
+    text = _all_text(fix["document"])
+    for c in NEW_CASES:
+        if "fix_present" in c:
+            ok = c["fix_present"] in text and c["fix_absent"] not in text
+            oks.append(_line(ok, f"{c['cv']:24}  rewrite -> '{c['fix_present']}'"))
+    return all(oks)
+
+
 def run():
     detection_ok = test_detection()
     autofix_ok = test_autofix()
+    new_ok = test_new_checks()
     print()
-    if detection_ok and autofix_ok:
+    if detection_ok and autofix_ok and new_ok:
         print("  ✓ All checks detect AND fix their violations. The engine works end to end;")
         print("    if a real rule isn't firing, run rule_doctor.py on the real rules.")
         return 0
