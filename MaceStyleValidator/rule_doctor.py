@@ -79,9 +79,12 @@ def diagnose(rule):
     if rule_type not in KNOWN_RULE_TYPES:
         problems.append(f"rule_type={rule_type!r} not recognised by the dispatcher")
 
-    # 4. check_value must have a validator branch — only meaningful for rules
-    #    that would reach the Word engine in the first place.
-    if doc_type in WORD_DOC_TYPES and rule_type in WORD_RULE_TYPES:
+    # 4. check_value must have a validator branch — but only for the hard-coded
+    #    path. use_ai rules are applied by Claude from the rule text and never
+    #    touch the check_value dispatch, so an "unimplemented" check_value is
+    #    irrelevant for them. (Mirror the engine's truthiness on use_ai.)
+    is_ai = bool(rule.get("use_ai"))
+    if doc_type in WORD_DOC_TYPES and rule_type in WORD_RULE_TYPES and not is_ai:
         if not _check_value_implemented(rule_type, check_value):
             problems.append(
                 f"check_value={check_value!r} has no validator branch for "
