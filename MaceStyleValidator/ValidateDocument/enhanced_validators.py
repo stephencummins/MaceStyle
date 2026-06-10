@@ -212,7 +212,7 @@ def check_british_spelling(doc, rule):
                     changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                     fix_count += len(matches)
 
-    if issue_count > 0:
+    if issue_count > 0 and not rule['auto_fix']:
         issues.append(f"Found {issue_count} instances of American spelling (use '{british_word}')")
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} instances to British spelling '{british_word}'")
@@ -268,7 +268,7 @@ def check_contractions(doc, rule):
                     changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                     fix_count += len(matches)
 
-    if issue_count > 0:
+    if issue_count > 0 and not rule['auto_fix']:
         issues.append(f"Found {issue_count} instances of contraction '{canonical}'")
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} contractions to '{expanded}'")
@@ -301,7 +301,7 @@ def check_word_choice(doc, rule):
                         changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                         fix_count += matches
 
-        if issue_count > 0:
+        if issue_count > 0 and not rule['auto_fix']:
             issues.append(f"Found {issue_count} instances of 'towards'")
         if fix_count > 0:
             fixes.append(f"Fixed {fix_count} instances to 'toward'")
@@ -351,7 +351,7 @@ def check_symbols(doc, rule):
                         changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                         fix_count += matches
 
-        if issue_count > 0:
+        if issue_count > 0 and not rule['auto_fix']:
             issues.append(f"Found {issue_count} ampersands (&)")
         if fix_count > 0:
             fixes.append(f"Fixed {fix_count} ampersands to 'and'")
@@ -375,7 +375,7 @@ def check_symbols(doc, rule):
                         changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                         fix_count += len(matches)
 
-        if issue_count > 0:
+        if issue_count > 0 and not rule['auto_fix']:
             issues.append(f"Found {issue_count} percent symbols (%)")
         if fix_count > 0:
             fixes.append(f"Fixed {fix_count} percent symbols to 'percent'")
@@ -428,7 +428,7 @@ def check_numbers(doc, rule):
                             fix_count += 1
                         changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
 
-        if issue_count > 0:
+        if issue_count > 0 and not rule['auto_fix']:
             issues.append(f"Found {issue_count} numbers missing commas")
         if fix_count > 0:
             fixes.append(f"Added commas to {fix_count} numbers")
