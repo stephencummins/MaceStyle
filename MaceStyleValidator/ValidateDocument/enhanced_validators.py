@@ -76,7 +76,51 @@ BRITISH_SPELLINGS = {
     'fibers': 'fibres',
     'theater': 'theatre',
     'theaters': 'theatres',
+    'authorize': 'authorise',
+    'authorizes': 'authorises',
+    'authorized': 'authorised',
+    'authorizing': 'authorising',
+    'summarize': 'summarise',
+    'summarizes': 'summarises',
+    'summarized': 'summarised',
+    'summarizing': 'summarising',
+    'recognize': 'recognise',
+    'recognizes': 'recognises',
+    'recognized': 'recognised',
+    'realize': 'realise',
+    'realizes': 'realises',
+    'realized': 'realised',
+    'prioritize': 'prioritise',
+    'prioritized': 'prioritised',
+    'standardize': 'standardise',
+    'standardized': 'standardised',
+    'optimize': 'optimise',
+    'optimized': 'optimised',
+    'specialize': 'specialise',
+    'specialized': 'specialised',
+    'maximize': 'maximise',
+    'minimise': 'minimise',
+    'customize': 'customise',
+    'customized': 'customised',
+    'program': 'programme',  # Mace house style prefers 'programme'
+    'programs': 'programmes',
+    'meter': 'metre',
+    'meters': 'metres',
+    'liter': 'litre',
+    'liters': 'litres',
+    'modeling': 'modelling',
+    'modeled': 'modelled',
+    'traveling': 'travelling',
+    'traveled': 'travelled',
+    'enrollment': 'enrolment',
 }
+
+# Reverse map: British word -> list of American spellings that should be
+# corrected to it. Used when a rule stores the British (target) word in its
+# CheckValue/ExpectedValue rather than the American one.
+_AMERICAN_FOR_BRITISH = {}
+for _am, _br in BRITISH_SPELLINGS.items():
+    _AMERICAN_FOR_BRITISH.setdefault(_br.lower(), []).append(_am)
 
 # Contractions to expand
 CONTRACTIONS = {
@@ -105,51 +149,92 @@ CONTRACTIONS = {
     "would've": "would have",
 }
 
+def _resolve_spelling_rule(rule):
+    """Work out the American form(s) to search for and the British replacement.
+
+    Rules in the list may store EITHER the American word (e.g.
+    'BritishSpelling_color') OR — as in the live Mace list — the British target
+    word ('BritishSpelling_programme'). Returns (american_forms, british_word)
+    or (None, None) when no mapping is known, so we never "correct" a word to
+    itself (which produced false positives counting correct British words as
+    American)."""
+    suffix = rule['check_value'].replace('BritishSpelling_', '')
+    expected = rule.get('expected_value') or ''
+    key = suffix.lower()
+
+    if key in BRITISH_SPELLINGS:
+        # Suffix is the American word.
+        return [suffix], (expected or BRITISH_SPELLINGS[key])
+    if key in _AMERICAN_FOR_BRITISH:
+        # Suffix is the British target word — search for its American form(s).
+        return _AMERICAN_FOR_BRITISH[key], (expected or suffix)
+    ekey = expected.lower()
+    if ekey in _AMERICAN_FOR_BRITISH:
+        return _AMERICAN_FOR_BRITISH[ekey], expected
+    return None, None
+
+
 def check_british_spelling(doc, rule):
     """Check and fix American spellings"""
     issues = []
     fixes = []
     changes = []
 
-    american_word = rule['check_value'].replace('BritishSpelling_', '')
-    british_word = rule['expected_value']
+    american_forms, british_word = _resolve_spelling_rule(rule)
+    if not american_forms:
+        logging.info(f"No American-spelling mapping for rule '{rule.get('check_value')}' — skipping")
+        return {'issues': issues, 'fixes': fixes, 'changes': changes}
+
+    def replace_preserve_case(match):
+        word = match.group(0)
+        if word.isupper():
+            return british_word.upper()
+        elif word[0].isupper():
+            return british_word.capitalize()
+        return british_word
 
     issue_count = 0
     fix_count = 0
 
-    # Check all paragraphs
     for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
         for run in paragraph.runs:
-            if run.text:
-                # Use word boundaries to avoid partial matches
+            if not run.text:
+                continue
+            for american_word in american_forms:
                 pattern = r'\b' + re.escape(american_word) + r'\b'
                 matches = re.findall(pattern, run.text, re.IGNORECASE)
-
-                if matches:
-                    issue_count += len(matches)
-
-                    if rule['auto_fix']:
-                        # Replace while preserving case
-                        def replace_preserve_case(match):
-                            word = match.group(0)
-                            if word.isupper():
-                                return british_word.upper()
-                            elif word[0].isupper():
-                                return british_word.capitalize()
-                            else:
-                                return british_word
-
-                        before = run.text
-                        run.text = re.sub(pattern, replace_preserve_case, run.text, flags=re.IGNORECASE)
-                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
-                        fix_count += len(matches)
+                if not matches:
+                    continue
+                issue_count += len(matches)
+                if rule['auto_fix']:
+                    before = run.text
+                    run.text = re.sub(pattern, replace_preserve_case, run.text, flags=re.IGNORECASE)
+                    changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
+                    fix_count += len(matches)
 
     if issue_count > 0:
-        issues.append(f"Found {issue_count} instances of American spelling '{american_word}'")
+        issues.append(f"Found {issue_count} instances of American spelling (use '{british_word}')")
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} instances to British spelling '{british_word}'")
 
     return {'issues': issues, 'fixes': fixes, 'changes': changes}
+
+# CheckValue stores the contraction with the apostrophe stripped
+# (e.g. 'NoContraction_shouldnt'), so map the stripped form back to the
+# canonical apostrophe form used in real text.
+_APOSTROPHELESS_CONTRACTIONS = {k.replace("'", ""): k for k in CONTRACTIONS}
+
+# Apostrophe variants that appear in Word documents: straight (') and the
+# typographic/curly right single quote (’) Word auto-substitutes.
+_APOSTROPHES = "'’"
+
+
+def _contraction_pattern(canonical):
+    """Word-bounded, case-insensitive regex matching a contraction with either
+    a straight or a curly apostrophe."""
+    base = re.escape(canonical).replace("'", f"[{_APOSTROPHES}]")
+    return re.compile(r'\b' + base + r'\b', re.IGNORECASE)
+
 
 def check_contractions(doc, rule):
     """Check and fix contractions"""
@@ -157,28 +242,34 @@ def check_contractions(doc, rule):
     fixes = []
     changes = []
 
-    contraction = rule['check_value'].replace('NoContraction_', '')
+    stripped = rule['check_value'].replace('NoContraction_', '')
+    canonical = _APOSTROPHELESS_CONTRACTIONS.get(stripped.lower(), stripped)
     expanded = rule['expected_value']
+    pattern = _contraction_pattern(canonical)
 
     issue_count = 0
     fix_count = 0
 
-    # Check all paragraphs
+    def _expand(match):
+        # Preserve a leading capital (e.g. start of sentence)
+        return expanded.capitalize() if match.group(0)[0].isupper() else expanded
+
+    # Check all paragraphs (including those inside tables)
     for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
         for run in paragraph.runs:
-            if run.text and contraction in run.text:
-                # Count occurrences
-                count = run.text.count(contraction)
-                issue_count += count
-
+            if not run.text:
+                continue
+            matches = pattern.findall(run.text)
+            if matches:
+                issue_count += len(matches)
                 if rule['auto_fix']:
                     before = run.text
-                    run.text = run.text.replace(contraction, expanded)
+                    run.text = pattern.sub(_expand, run.text)
                     changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
-                    fix_count += count
+                    fix_count += len(matches)
 
     if issue_count > 0:
-        issues.append(f"Found {issue_count} instances of contraction '{contraction}'")
+        issues.append(f"Found {issue_count} instances of contraction '{canonical}'")
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} contractions to '{expanded}'")
 
