@@ -3,7 +3,12 @@ import logging
 from docx import Document
 from docx.shared import RGBColor
 from .ai_client import call_claude
-from .enhanced_validators import validate_language_rules, validate_punctuation_rules, validate_grammar_rules
+from .enhanced_validators import (
+    validate_language_rules,
+    validate_punctuation_rules,
+    validate_grammar_rules,
+    iter_all_paragraphs,
+)
 
 
 def _normalise_issue(item, rule=None):
@@ -55,7 +60,8 @@ def validate_word_document(file_stream, rules):
     # AI-powered style corrections
     if ai_rules:
         try:
-            full_text = "\n\n".join([p.text for p in doc.paragraphs if p.text.strip()])
+            all_paras = iter_all_paragraphs(doc)
+            full_text = "\n\n".join([p.text for p in all_paras if p.text.strip()])
             if full_text.strip():
                 result = call_claude(ai_rules, full_text)
                 if result and result['changes_made'] > 0 and result['corrected_text']:
@@ -63,7 +69,7 @@ def validate_word_document(file_stream, rules):
                     para_index = 0
                     ai_changes = []
 
-                    for para in doc.paragraphs:
+                    for para in all_paras:
                         if para.text.strip() and para_index < len(corrected_paras):
                             original_text = para.text
                             if len(para.runs) > 0:
@@ -130,7 +136,7 @@ def _check_fonts(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for paragraph in doc.paragraphs:
+        for paragraph in iter_all_paragraphs(doc):
             for run in paragraph.runs:
                 if run.text.strip():
                     if run.font.name is None or run.font.name != expected_font:
@@ -157,7 +163,7 @@ def _check_fonts(doc, rule):
             })
 
     elif rule['check_value'] == 'Heading1Font':
-        for para_idx, paragraph in enumerate(doc.paragraphs):
+        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
             if paragraph.style.name == 'Heading 1':
                 current_font = paragraph.runs[0].font.name if paragraph.runs else None
                 if current_font is None or current_font != expected_font:
@@ -190,7 +196,7 @@ def _check_colors(doc, rule):
 
     if rule['check_value'] == 'Heading1Color':
         expected_rgb = tuple(map(int, rule['expected_value'].split(',')))
-        for para_idx, paragraph in enumerate(doc.paragraphs):
+        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
             if paragraph.style.name == 'Heading 1':
                 for run in paragraph.runs:
                     if run.font.color.rgb:

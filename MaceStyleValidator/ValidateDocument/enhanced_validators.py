@@ -4,6 +4,30 @@ Enhanced validation functions for all style rules
 import re
 import logging
 
+
+def iter_all_paragraphs(container):
+    """Return every paragraph in the container, descending into table cells
+    (and nested tables).
+
+    python-docx's ``iter_all_paragraphs(doc)`` only yields top-level body paragraphs and
+    silently skips anything inside tables. Many Mace documents (e.g. activity
+    guides) hold all their content in tables, so checkers that walked only
+    ``iter_all_paragraphs(doc)`` never saw that text. Horizontally/vertically merged cells
+    expose the same underlying cell more than once, so we de-duplicate by the
+    cell's XML element to avoid double-counting.
+    """
+    paras = list(getattr(container, 'paragraphs', []))
+    seen = set()
+    for table in getattr(container, 'tables', []):
+        for row in table.rows:
+            for cell in row.cells:
+                tc_id = id(cell._tc)
+                if tc_id in seen:
+                    continue
+                seen.add(tc_id)
+                paras.extend(iter_all_paragraphs(cell))
+    return paras
+
 # ============================================
 # LANGUAGE VALIDATORS
 # ============================================
@@ -94,7 +118,7 @@ def check_british_spelling(doc, rule):
     fix_count = 0
 
     # Check all paragraphs
-    for para_idx, paragraph in enumerate(doc.paragraphs):
+    for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
         for run in paragraph.runs:
             if run.text:
                 # Use word boundaries to avoid partial matches
@@ -140,7 +164,7 @@ def check_contractions(doc, rule):
     fix_count = 0
 
     # Check all paragraphs
-    for para_idx, paragraph in enumerate(doc.paragraphs):
+    for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
         for run in paragraph.runs:
             if run.text and contraction in run.text:
                 # Count occurrences
@@ -174,7 +198,7 @@ def check_word_choice(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for para_idx, paragraph in enumerate(doc.paragraphs):
+        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
             for run in paragraph.runs:
                 if run.text and 'towards' in run.text.lower():
                     matches = len(re.findall(r'\btowards\b', run.text, re.IGNORECASE))
@@ -195,7 +219,7 @@ def check_word_choice(doc, rule):
         # Flag usage of 'etc.'
         issue_count = 0
 
-        for paragraph in doc.paragraphs:
+        for paragraph in iter_all_paragraphs(doc):
             for run in paragraph.runs:
                 if run.text and 'etc.' in run.text.lower():
                     matches = len(re.findall(r'\betc\.?\b', run.text, re.IGNORECASE))
@@ -223,7 +247,7 @@ def check_symbols(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for para_idx, paragraph in enumerate(doc.paragraphs):
+        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
             for run in paragraph.runs:
                 if run.text and '&' in run.text:
                     # Count ampersands (exclude &nbsp; and other HTML entities)
@@ -246,7 +270,7 @@ def check_symbols(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for para_idx, paragraph in enumerate(doc.paragraphs):
+        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
             for run in paragraph.runs:
                 if run.text and '%' in run.text:
                     # Find number% patterns
@@ -269,7 +293,7 @@ def check_symbols(doc, rule):
         # Detect incorrect apostrophes in plurals (e.g., CD's, SME's)
         issue_count = 0
 
-        for paragraph in doc.paragraphs:
+        for paragraph in iter_all_paragraphs(doc):
             for run in paragraph.runs:
                 if run.text:
                     # Pattern: word ending with 's followed by 's or other letters
@@ -295,7 +319,7 @@ def check_numbers(doc, rule):
         issue_count = 0
         fix_count = 0
 
-        for para_idx, paragraph in enumerate(doc.paragraphs):
+        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
             for run in paragraph.runs:
                 if run.text:
                     # Find numbers with 4+ digits without commas
