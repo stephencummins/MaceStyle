@@ -1,0 +1,1992 @@
+[
+  {
+    "title": "All hyperlinks must be functional",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "HyperlinksWorking",
+    "expected_value": "No broken or dead hyperlinks",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 70
+  },
+  {
+    "title": "All text must use Arial font",
+    "rule_type": "Font",
+    "doc_type": "All",
+    "check_value": "AllTextFont",
+    "expected_value": "Arial",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 1
+  },
+  {
+    "title": "Cross-references must use present tense",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "CrossRefPresentTense",
+    "expected_value": "Figure 1-1 shows (not showed/will show)",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 55
+  },
+  {
+    "title": "Avoid ampersand (&) in Visio diagrams - use 'and' instead",
+    "rule_type": "Punctuation",
+    "doc_type": "Visio",
+    "check_value": "NoAmpersand",
+    "expected_value": "and",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 76
+  },
+  {
+    "title": "Brand names: capitalise brand, not description",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "BrandNameCaps",
+    "expected_value": "Kaplan turbine (not Kaplan Turbine)",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 30
+  },
+  {
+    "title": "Captions must not start with articles (A, The)",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "CaptionNoArticle",
+    "expected_value": "Avoid starting captions with A or The",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 70
+  },
+  {
+    "title": "Avoid 'and/or' - use 'X or Y or both' instead",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "AvoidAndOr",
+    "expected_value": "Replace and/or with 'X or Y or both'",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 47
+  },
+  {
+    "title": "Avoid 'etc.' - be specific instead",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "AvoidEtc",
+    "expected_value": "NoEtc",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Don't capitalise initialism source words unless proper noun",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "NoInitialismCaps",
+    "expected_value": "subject matter expert (SME) not Subject Matter Expert",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 30
+  },
+  {
+    "title": "Do not use 'etc.' alongside i.e. or e.g.",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoEtcWithEgIe",
+    "expected_value": "Remove etc. when used with i.e. or e.g.",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 12
+  },
+  {
+    "title": "Don't begin sentence with an abbreviation (except organisation names)",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoSentenceStartAbbrev",
+    "expected_value": "Spell out abbreviation at start of sentence",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 11
+  },
+  {
+    "title": "Do not use 'feel' in technical context",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "NoFeelTechnical",
+    "expected_value": "Use think/believe instead of feel",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Don't break number and unit at end of line",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "NoBreakNumberUnit",
+    "expected_value": "Keep number and unit on same line",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 72
+  },
+  {
+    "title": "Do not capitalise for emphasis",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "NoEmphasisCaps",
+    "expected_value": "NoCapsForEmphasis",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 30
+  },
+  {
+    "title": "Don't introduce initialism if used fewer than 3 times (<20pp) or 5 times (>20pp)",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "InitialismMinUsage",
+    "expected_value": "Min 3 uses (<20pp) or 5 uses (>20pp)",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 11
+  },
+  {
+    "title": "Capitalise document/section titles on first reference, lowercase thereafter",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "DocTitleCaps",
+    "expected_value": "Draft Data Collection Report... then 'the report'",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 30
+  },
+  {
+    "title": "Avoid forward slash - use words instead",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "AvoidForwardSlash",
+    "expected_value": "Use words instead of / to avoid ambiguity",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 47
+  },
+  {
+    "title": "Avoid ampersand (&) - use 'and' instead",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "NoAmpersand",
+    "expected_value": "and",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 60
+  },
+  {
+    "title": "British spelling: 'Programme' not 'Program' (in UK/Mace context)",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_programme",
+    "expected_value": "Programme",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 11
+  },
+  {
+    "title": "'close proximity' is redundant - use 'proximity'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "ProximityRedundant",
+    "expected_value": "proximity (not close proximity)",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Always hyphenate prefixes all-, ex-, quasi-, self-",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "HyphenAlwaysPrefix",
+    "expected_value": "all-inclusive, ex-president, self-made, quasi-government",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 45
+  },
+  {
+    "title": "Avoid using dash to substitute for 'to' in ranges (except tables)",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "NoDashForRange",
+    "expected_value": "Use 'to' not dash in ranges in text",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 46
+  },
+  {
+    "title": "Consistent terminology - don't refer to same thing differently",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "ConsistentTerminology",
+    "expected_value": "E.g. don't mix 'plan' and 'strategy' for same document",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Date format in text: DD MONTH YEAR (e.g., 01 February 2015)",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "DateFormat_Text",
+    "expected_value": "DD MONTH YYYY",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 20
+  },
+  {
+    "title": "Bulleted list items must use parallel structure",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "BulletParallel",
+    "expected_value": "Consistent verb form across all items in a list",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 68
+  },
+  {
+    "title": "Do not begin a sentence with e.g. or i.e.",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoSentenceStartEgIe",
+    "expected_value": "e.g. and i.e. must not start sentences",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 12
+  },
+  {
+    "title": "Check for homophone misuse (their/there/they're, site/sight, etc.)",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "HomophoneCheck",
+    "expected_value": "Correct homophone usage in context",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Do not abbreviate minimum, maximum, approximately",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "NoMinMaxApprox",
+    "expected_value": "Spell out minimum, maximum, approximately",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Captions must not end with a period",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "CaptionNoPeriod",
+    "expected_value": "No full stop at end of caption",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 70
+  },
+  {
+    "title": "Consistent font usage throughout document",
+    "rule_type": "Font",
+    "doc_type": "All",
+    "check_value": "ConsistentFonts",
+    "expected_value": "No mixed fonts where same font expected",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 70
+  },
+  {
+    "title": "Date format in tables: DD-MMM-YYYY (e.g., 28-Feb-2020)",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "DateFormat_Table",
+    "expected_value": "DD-MMM-YYYY",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 20
+  },
+  {
+    "title": "Fields of study lowercase unless from proper noun",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "FieldOfStudyCaps",
+    "expected_value": "civil engineering (but Mandarin)",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 30
+  },
+  {
+    "title": "Figure/table captions must appear above the figure/table",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "CaptionPosition",
+    "expected_value": "Caption above, not below",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 70
+  },
+  {
+    "title": "Figure/table captions: capitalise nouns/verbs, lowercase conjunctions/prepositions",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "CaptionCapitalisation",
+    "expected_value": "Initial caps on nouns/verbs, lowercase articles",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 70
+  },
+  {
+    "title": "Don't use 'above' or 'below' for cross-references",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "NoAboveBelow",
+    "expected_value": "Use figure/table numbers or 'the following'",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 55
+  },
+  {
+    "title": "Figures and tables must have captions",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "FigureTableCaptions",
+    "expected_value": "Required",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 70
+  },
+  {
+    "title": "Govt bodies: full name capitalised, partial title lowercase",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "GovtBodyCaps",
+    "expected_value": "Buildings Department; but 'the department'",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 30
+  },
+  {
+    "title": "Heading 1 Color Check",
+    "rule_type": "Color",
+    "doc_type": "All",
+    "check_value": "Heading1Color",
+    "expected_value": "0,51,153",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 2
+  },
+  {
+    "title": "Heading 1 Font Check",
+    "rule_type": "Font",
+    "doc_type": "All",
+    "check_value": "Heading1Font",
+    "expected_value": "Arial",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 1
+  },
+  {
+    "title": "Hyphenate compound modifiers (e.g., 15-page document)",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "CompoundModifiers",
+    "expected_value": "Hyphenated",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 45
+  },
+  {
+    "title": "Hyphenate -related, -like, -type suffixes",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "HyphenSuffixes",
+    "expected_value": "quality-related, building-like, financial-type",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 45
+  },
+  {
+    "title": "Hyphenate: in-depth, in-house, in-line, in-place, in-service, in-text",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "HyphenInWords",
+    "expected_value": "in-depth, in-house, in-line, in-place, in-service, in-text",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 45
+  },
+  {
+    "title": "Initialisms must be expanded on first use, then short form thereafter",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "InitialismFirstUse",
+    "expected_value": "Expand initialism on first occurrence",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 11
+  },
+  {
+    "title": "Job titles only capitalised when with person's name",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "JobTitles",
+    "expected_value": "ContextDependent",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 30
+  },
+  {
+    "title": "Latin species names in italics within parentheses on first reference",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "ScientificNameFormat",
+    "expected_value": "Common name (Latin name) on first use, common name thereafter",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 40
+  },
+  {
+    "title": "List introductory sentence must end with colon (unless section heading)",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "BulletIntroColon",
+    "expected_value": "Colon after list intro sentence",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 68
+  },
+  {
+    "title": "Max 2 consecutive hyphenated line-ends",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "MaxConsecutiveHyphens",
+    "expected_value": "No more than 2 consecutive lines ending with hyphens",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 72
+  },
+  {
+    "title": "Never hyphenate 'in situ' or 'ex situ'",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "NoHyphenInSitu",
+    "expected_value": "in situ, ex situ (no hyphens)",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 45
+  },
+  {
+    "title": "Never use apostrophes for plurals",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "NoApostrophePlurals",
+    "expected_value": "NoApostrophe",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 55
+  },
+  {
+    "title": "No contractions in formal text - use 'cannot' not 'can't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_cant",
+    "expected_value": "cannot",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'could not' not 'couldn't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_couldnt",
+    "expected_value": "could not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'did not' not 'didn't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_didnt",
+    "expected_value": "did not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'do not' not 'don't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_dont",
+    "expected_value": "do not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'does not' not 'doesn't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_doesnt",
+    "expected_value": "does not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'has not' not 'hasn't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_hasnt",
+    "expected_value": "has not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'have not' not 'haven't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_havent",
+    "expected_value": "have not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'is not' not 'isn't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_isnt",
+    "expected_value": "is not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'should not' not 'shouldn't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_shouldnt",
+    "expected_value": "should not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'will not' not 'won't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_wont",
+    "expected_value": "will not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No contractions in formal text - use 'would not' not 'wouldn't'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "NoContraction_wouldnt",
+    "expected_value": "would not",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "No double spaces between words or sentences",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "NoDoubleSpaces",
+    "expected_value": "Single space only",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 65
+  },
+  {
+    "title": "No hyphen: offsite, online, onsite, offline",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "NoHyphenOffOn",
+    "expected_value": "offsite, online, onsite, offline (no hyphens)",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 45
+  },
+  {
+    "title": "No outstanding comments in document",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "NoOutstandingComments",
+    "expected_value": "All comments must be resolved before submission",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 70
+  },
+  {
+    "title": "No spaces around forward slash",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "NoSpacesAroundSlash",
+    "expected_value": "km/s not km / s",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 47
+  },
+  {
+    "title": "No widow or orphan lines",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "NoWidowsOrphans",
+    "expected_value": "No isolated lines at top/bottom of page",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 72
+  },
+  {
+    "title": "Non-verb list items: lowercase, no punctuation",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "BulletNonVerb",
+    "expected_value": "Lowercase, no end punctuation for non-verb items",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 68
+  },
+  {
+    "title": "Normal Text",
+    "rule_type": "Font",
+    "doc_type": "All",
+    "check_value": "AllTextFont",
+    "expected_value": "Arial",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 1
+  },
+  {
+    "title": "Numbers below 10 should be spelled out in text",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "NumbersBelowTen",
+    "expected_value": "Spelled",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 25
+  },
+  {
+    "title": "Organisations referred to in third person singular ('the team is' not 'the team are')",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "OrgSingular",
+    "expected_value": "Third person singular for organisations",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "Process Map - Activity Guide References Included",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "ActivityGuideReferences",
+    "expected_value": "Activity Guide references shall be included where applicable",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 129
+  },
+  {
+    "title": "Process Map - Activity Reference Format XX-000001",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "ActivityReferenceFormat",
+    "expected_value": "XX-000001",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 130
+  },
+  {
+    "title": "Process Map - All 5 Swim Lanes Required",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "SwimLanes",
+    "expected_value": "All five swim lanes must be present: New Hospitals Programme, NHS, Healthy Delivery Partnership, Delivery Team, Contractor/Supply Chain",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 115
+  },
+  {
+    "title": "Process Map - Bottom Line Process Name Required",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "BottomLineContent",
+    "expected_value": "Process name must be present at bottom",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 111
+  },
+  {
+    "title": "Process Map - Box Body Concise Description",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "BoxBodyContent",
+    "expected_value": "Box body must be concise description without role ownership",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 118
+  },
+  {
+    "title": "Process Map - Box Headers One Word or Short Sentence",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "BoxHeaders",
+    "expected_value": "Each box header shall be one word or short sentence",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 117
+  },
+  {
+    "title": "Process Map - Contractor Lane Color",
+    "rule_type": "Color",
+    "doc_type": "All",
+    "check_value": "SwimLane5Color",
+    "expected_value": "Boxes in Contractor/Supply Chain lane use lane color in header",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 125
+  },
+  {
+    "title": "Process Map - Decision Arrows Have YES/NO Labels",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "DecisionLabels",
+    "expected_value": "Arrows from decision points must contain YES or NO",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 127
+  },
+  {
+    "title": "Process Map - Decision Points Use Diamond Shapes",
+    "rule_type": "Layout",
+    "doc_type": "Visio",
+    "check_value": "DecisionShapes",
+    "expected_value": "Decision points must use diamond shapes",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 126
+  },
+  {
+    "title": "Process Map - Delivery Team Lane Color",
+    "rule_type": "Color",
+    "doc_type": "All",
+    "check_value": "SwimLane4Color",
+    "expected_value": "Boxes in Delivery Team lane use lane color in header",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 124
+  },
+  {
+    "title": "Process Map - Document Reference Required",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "DocumentReference",
+    "expected_value": "Doc Ref: [value] must be present",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 112
+  },
+  {
+    "title": "Process Map - Feedback Activity Required",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "FeedbackActivity",
+    "expected_value": "Must contain feedback activity at end",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 114
+  },
+  {
+    "title": "Process Map - Healthy Delivery Partnership Lane Color",
+    "rule_type": "Color",
+    "doc_type": "All",
+    "check_value": "SwimLane3Color",
+    "expected_value": "Boxes in Healthy Delivery Partnership lane use lane color in header",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 123
+  },
+  {
+    "title": "Process Map - Interface Boxes Dark Grey",
+    "rule_type": "Color",
+    "doc_type": "All",
+    "check_value": "InterfaceBoxColor",
+    "expected_value": "#404040",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 120
+  },
+  {
+    "title": "Process Map - Multi-Lane Activities Grey Color",
+    "rule_type": "Color",
+    "doc_type": "All",
+    "check_value": "MultiLaneActivityColor",
+    "expected_value": "#808080",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 119
+  },
+  {
+    "title": "Process Map - New Hospitals Programme Lane Color",
+    "rule_type": "Color",
+    "doc_type": "All",
+    "check_value": "SwimLane1Color",
+    "expected_value": "Boxes in New Hospitals Programme lane use lane color in header",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 121
+  },
+  {
+    "title": "Process Map - NHS Lane Color",
+    "rule_type": "Color",
+    "doc_type": "All",
+    "check_value": "SwimLane2Color",
+    "expected_value": "Boxes in NHS lane use lane color in header",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 122
+  },
+  {
+    "title": "Process Map - RIBA Stage Gates Format",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "StageGates",
+    "expected_value": "Stage Gates must follow RIBA Plan of Work format",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 116
+  },
+  {
+    "title": "Process Map - Set Up or Start Activity Required",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "StartActivity",
+    "expected_value": "Must contain 'Set Up' or 'Start' activity",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 113
+  },
+  {
+    "title": "Process Map - Slide Size 10x5.62 inches",
+    "rule_type": "PageDimensions",
+    "doc_type": "All",
+    "check_value": "PageSize",
+    "expected_value": "10.0x5.62",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 50
+  },
+  {
+    "title": "Process Map - Top Line Workstream Name Required",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "TopLineContent",
+    "expected_value": "Workstream name must be present at top",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 110
+  },
+  {
+    "title": "Process Map - Underlined Headers Need Activity Guide",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "UnderlinedHeaders",
+    "expected_value": "Underlined box headers must have corresponding Activity Guide",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 128
+  },
+  {
+    "title": "Professional tone appropriate to document purpose and audience",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "ProfessionalTone",
+    "expected_value": "No informal language in formal documents",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Project phases: Use G0-G1, G2-G4, G5 notation consistently",
+    "rule_type": "Language",
+    "doc_type": "Visio",
+    "check_value": "PhaseNotation",
+    "expected_value": "G0-G1",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 79
+  },
+  {
+    "title": "Proper noun derivations must be capitalised (Welsh, European, Japanese)",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "ProperNounDerivations",
+    "expected_value": "Capitalised",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 30
+  },
+  {
+    "title": "Reference codes must be uppercase (e.g., DMT-ACT-001)",
+    "rule_type": "Capitalisation",
+    "doc_type": "Visio",
+    "check_value": "ReferenceCodeCase",
+    "expected_value": "UPPERCASE",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 75
+  },
+  {
+    "title": "Replace 'at the present time' with 'now'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_atpresenttime",
+    "expected_value": "now",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'conduct an investigation of' with 'investigate'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_conductinvestigation",
+    "expected_value": "investigate",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'commence' with 'begin'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_commence",
+    "expected_value": "begin",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'despite the fact that' with 'although'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_despitethefact",
+    "expected_value": "although",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'during the time that' with 'while'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_duringthetime",
+    "expected_value": "while",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'due to the fact that' with 'because'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_duetothefact",
+    "expected_value": "because",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'for the purpose of' with 'to' or 'for'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_forthepurpose",
+    "expected_value": "to / for",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'in order to' with 'to'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_inorderto",
+    "expected_value": "to",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'in the course of' with 'during'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_inthecourseof",
+    "expected_value": "during",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'in the event of/that' with 'if'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_intheeventof",
+    "expected_value": "if",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'in the vicinity of' with 'near'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_vicinity",
+    "expected_value": "near",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'initiate the preparation of' with 'begin preparing'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_initiateprep",
+    "expected_value": "begin preparing",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'is applicable' with 'applies'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_isapplicable",
+    "expected_value": "applies",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'make a decision' with 'decide'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_makeadecision",
+    "expected_value": "decide",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'most of the time' with 'usually'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_mostofthetime",
+    "expected_value": "usually",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'on a voluntary basis' with 'voluntarily'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_voluntarybasis",
+    "expected_value": "voluntarily",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'on an annual basis' with 'annually'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_annualbasis",
+    "expected_value": "annually",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'prior to' with 'before'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_priorto",
+    "expected_value": "before",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'provide a description of' with 'describe'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_providedescription",
+    "expected_value": "describe",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'subsequent to' with 'after'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_subsequentto",
+    "expected_value": "after",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'take into consideration' with 'consider'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_takeintoconsideration",
+    "expected_value": "consider",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Replace 'the majority' with 'most'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PhraseReplace_majority",
+    "expected_value": "most",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Section titles should be capitalised",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "SectionTitles",
+    "expected_value": "Capitalised",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 30
+  },
+  {
+    "title": "Spell out 'percent' in text (not %)",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "PercentSymbol",
+    "expected_value": "percent",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 60
+  },
+  {
+    "title": "Subsidiary headings: only first letter and proper nouns capitalised",
+    "rule_type": "Capitalisation",
+    "doc_type": "All",
+    "check_value": "SubsidiaryHeadings",
+    "expected_value": "SentenceCase",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 30
+  },
+  {
+    "title": "Table of contents must be complete and accurate",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "TOCComplete",
+    "expected_value": "TOC present and matching document sections",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 70
+  },
+  {
+    "title": "Time format: 24-hour with colon (e.g., 09:00, 18:25)",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "TimeFormat",
+    "expected_value": "HH:MM",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 20
+  },
+  {
+    "title": "Use British English spelling - 'aluminium' not 'aluminum'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_aluminium",
+    "expected_value": "aluminium",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'analogue' not 'analog'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_analogue",
+    "expected_value": "analogue",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'analyse' not 'analyze'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_analyse",
+    "expected_value": "analyse",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'authorise' not 'authorize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_authorise",
+    "expected_value": "authorise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'calibre' not 'caliber'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_calibre",
+    "expected_value": "calibre",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'catalogue' not 'catalog'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_catalogue",
+    "expected_value": "catalogue",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'centre' not 'center'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_centre",
+    "expected_value": "centre",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'characterise' not 'characterize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_characterise",
+    "expected_value": "characterise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'colour' not 'color'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_colour",
+    "expected_value": "colour",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'defence' not 'defense'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_defence",
+    "expected_value": "defence",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'dialogue' not 'dialog'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_dialogue",
+    "expected_value": "dialogue",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'dyke' not 'dike'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_dyke",
+    "expected_value": "dyke",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'enrol' not 'enroll'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_enrol",
+    "expected_value": "enrol",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'equalise' not 'equalize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_equalise",
+    "expected_value": "equalise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'fibre' not 'fiber'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_fibre",
+    "expected_value": "fibre",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'fibreglass' not 'fiberglass'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_fibreglass",
+    "expected_value": "fibreglass",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'finalise' not 'finalize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_finalise",
+    "expected_value": "finalise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'finalised' not 'finalized'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_finalised",
+    "expected_value": "finalised",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'fulfil' not 'fulfill'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_fulfil",
+    "expected_value": "fulfil",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'grey' not 'gray'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_grey",
+    "expected_value": "grey",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'harbour' not 'harbor'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_harbour",
+    "expected_value": "harbour",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'homogenise' not 'homogenize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_homogenise",
+    "expected_value": "homogenise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'instil' not 'instill'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_instil",
+    "expected_value": "instil",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'kerb' not 'curb'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_kerb",
+    "expected_value": "kerb",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'labour' not 'labor'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_labour",
+    "expected_value": "labour",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'learnt' not 'learned' (past tense)",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_learnt",
+    "expected_value": "learnt",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'licence' (noun) not 'license'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_licence",
+    "expected_value": "licence",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'litre' not 'liter'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_litre",
+    "expected_value": "litre",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'manoeuvre' not 'maneuver'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_manoeuvre",
+    "expected_value": "manoeuvre",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'maximise' not 'maximize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_maximise",
+    "expected_value": "maximise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'metre' not 'meter'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_metre",
+    "expected_value": "metre",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'minimise' not 'minimize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_minimise",
+    "expected_value": "minimise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'mobilise' not 'mobilize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_mobilise",
+    "expected_value": "mobilise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'modelling' not 'modeling'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_modelling",
+    "expected_value": "modelling",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'neighbour' not 'neighbor'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_neighbour",
+    "expected_value": "neighbour",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'neutralise' not 'neutralize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_neutralise",
+    "expected_value": "neutralise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'normalise' not 'normalize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_normalise",
+    "expected_value": "normalise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'odour' not 'odor'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_odour",
+    "expected_value": "odour",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'optimise' not 'optimize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_optimise",
+    "expected_value": "optimise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'organise' not 'organize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_organise",
+    "expected_value": "organise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'per cent' not 'percent'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_percent",
+    "expected_value": "per cent",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'programme' not 'program'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_programme",
+    "expected_value": "programme",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'realise' not 'realize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_realise",
+    "expected_value": "realise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'skilful' not 'skillful'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_skilful",
+    "expected_value": "skilful",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'spelt' not 'spelled' (past tense)",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_spelt",
+    "expected_value": "spelt",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'stabilise' not 'stabilize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_stabilise",
+    "expected_value": "stabilise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'sulphide' not 'sulfide'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_sulphide",
+    "expected_value": "sulphide",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'summarise' not 'summarize'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_summarise",
+    "expected_value": "summarise",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'tunnelling' not 'tunneling'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_tunnelling",
+    "expected_value": "tunnelling",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use British English spelling - 'tyre' not 'tire'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "BritishSpelling_tyre",
+    "expected_value": "tyre",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 10
+  },
+  {
+    "title": "Use client's name in project docs, not 'the client'",
+    "rule_type": "Grammar",
+    "doc_type": "All",
+    "check_value": "ClientNameNotTheClient",
+    "expected_value": "Use actual client name",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 15
+  },
+  {
+    "title": "Use comma/colon/hyphen before e.g. and i.e., no comma after",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "PunctuationBeforeEgIe",
+    "expected_value": "Punctuation before, none after e.g./i.e.",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 12
+  },
+  {
+    "title": "Use commas with numbers of 4+ digits (e.g., 1,000)",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "NumberCommas",
+    "expected_value": "WithCommas",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 25
+  },
+  {
+    "title": "Use 'Constructability' not 'Constructibility'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "Constructability",
+    "expected_value": "Constructability",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 77
+  },
+  {
+    "title": "Use double quotes for direct speech",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "DirectSpeech",
+    "expected_value": "DoubleQuotes",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 50
+  },
+  {
+    "title": "Use 'forecast' as past tense, not 'forecasted'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "ForecastPastTense",
+    "expected_value": "forecast (not forecasted)",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Use hyphens with suffix '-wide' (e.g., site-wide)",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "Hyphen_wide",
+    "expected_value": "Hyphenated",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 45
+  },
+  {
+    "title": "Use metric units where possible",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "PreferMetric",
+    "expected_value": "Metric",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 40
+  },
+  {
+    "title": "Use Oxford comma where needed for clarity",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "OxfordComma",
+    "expected_value": "Add Oxford comma where list items could be ambiguous",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 50
+  },
+  {
+    "title": "Use single quotes for special terms on first reference",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "SpecialTerms",
+    "expected_value": "SingleQuotes",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 50
+  },
+  {
+    "title": "Use 'toward' not 'towards'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "Word_toward",
+    "expected_value": "toward",
+    "auto_fix": true,
+    "use_ai": true,
+    "priority": 35
+  },
+  {
+    "title": "Use 'will', 'must', 'shall' instead of 'should' or 'could'",
+    "rule_type": "Language",
+    "doc_type": "All",
+    "check_value": "AvoidShould",
+    "expected_value": "will/must/shall",
+    "auto_fix": false,
+    "use_ai": false,
+    "priority": 35
+  },
+  {
+    "title": "Verb-led list items: capitalise first letter, end with full stop",
+    "rule_type": "Layout",
+    "doc_type": "All",
+    "check_value": "BulletVerbLed",
+    "expected_value": "Capital + full stop for verb-led items",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 68
+  },
+  {
+    "title": "Visio - All Fonts Must Be Arial",
+    "rule_type": "Font",
+    "doc_type": "Visio",
+    "check_value": "AllTextFont",
+    "expected_value": "Arial",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 100
+  },
+  {
+    "title": "Visio - Bottom Margin 1 inch",
+    "rule_type": "Position",
+    "doc_type": "Visio",
+    "check_value": "BottomMargin",
+    "expected_value": "1.0",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 88
+  },
+  {
+    "title": "Visio - Footer Bottom-Right (9.5, 0.5)",
+    "rule_type": "Position",
+    "doc_type": "Visio",
+    "check_value": "ExactPosition",
+    "expected_value": "9.5,0.5",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 76
+  },
+  {
+    "title": "Visio - Icons 0.5 inch Square",
+    "rule_type": "Size",
+    "doc_type": "Visio",
+    "check_value": "IconSize",
+    "expected_value": "0.5x0.5",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 92
+  },
+  {
+    "title": "Visio - Left Margin 1 inch",
+    "rule_type": "Position",
+    "doc_type": "Visio",
+    "check_value": "LeftMargin",
+    "expected_value": "1.0",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 86
+  },
+  {
+    "title": "Visio - Logo at Top-Left (0.5, 7.5)",
+    "rule_type": "Position",
+    "doc_type": "Visio",
+    "check_value": "ExactPosition",
+    "expected_value": "0.5,7.5",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 75
+  },
+  {
+    "title": "Visio - Page Size Letter Landscape",
+    "rule_type": "PageDimensions",
+    "doc_type": "Visio",
+    "check_value": "PageSize",
+    "expected_value": "11.0x8.5",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 80
+  },
+  {
+    "title": "Visio - Process Box 2x1.5 inches",
+    "rule_type": "Size",
+    "doc_type": "Visio",
+    "check_value": "ProcessBoxSize",
+    "expected_value": "2.0x1.5",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 91
+  },
+  {
+    "title": "Visio - Right Margin at 10 inches",
+    "rule_type": "Position",
+    "doc_type": "Visio",
+    "check_value": "RightMargin",
+    "expected_value": "10.0",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 87
+  },
+  {
+    "title": "Visio - Shape Fill Color Brand Blue",
+    "rule_type": "Color",
+    "doc_type": "Visio",
+    "check_value": "ShapeFillColor",
+    "expected_value": "#003399",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 101
+  },
+  {
+    "title": "Visio - Text Color Black",
+    "rule_type": "Color",
+    "doc_type": "Visio",
+    "check_value": "ShapeTextColor",
+    "expected_value": "#000000",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 102
+  },
+  {
+    "title": "Visio - Title Box 3x1 inches",
+    "rule_type": "Size",
+    "doc_type": "Visio",
+    "check_value": "TitleBoxSize",
+    "expected_value": "3.0x1.0",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 90
+  },
+  {
+    "title": "Visio - Top Margin 2 inches",
+    "rule_type": "Position",
+    "doc_type": "Visio",
+    "check_value": "TopMargin",
+    "expected_value": "2.0",
+    "auto_fix": true,
+    "use_ai": false,
+    "priority": 85
+  },
+  {
+    "title": "Year intervals: dash, no spaces, don't repeat century (e.g., 2019-20)",
+    "rule_type": "Punctuation",
+    "doc_type": "All",
+    "check_value": "YearIntervalFormat",
+    "expected_value": "YYYY-YY (e.g. 2019-20)",
+    "auto_fix": false,
+    "use_ai": true,
+    "priority": 20
+  }
+]

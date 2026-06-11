@@ -647,6 +647,12 @@ _EGIE_NO_PUNCT_BEFORE = re.compile(r'(?<=\w)\s+(?:e\.g\.|i\.e\.)', re.I)
 # before and/or is followed by a comma, not the conjunction.
 _OXFORD = re.compile(r'\b\w+,\s+\w+\s+(?:and|or)\s+\w+\b')
 _NUM_BELOW_TEN = re.compile(r'(?<![\w./:-])[1-9](?![\w./:%-])')
+# number + SINGULAR unit + a following word = a compound modifier that should be
+# hyphenated ('15 page document' -> '15-page document'). Singular unit only, so
+# '5 years later' (not a modifier) is not flagged.
+_COMPOUND_MOD = re.compile(
+    r'\b\d+\s+(?:page|year|month|week|day|storey|metre|mile|hour|minute|foot|bed|bedroom|'
+    r'lane|stage|phase|step|tonne|litre|person)\s+[a-z]+', re.I)
 _NUM_EXCL_PREFIX = re.compile(
     r'\b(?:figure|fig|table|section|level|phase|stage|step|chapter|part|no|item|day|week|year|'
     r'option|appendix|volume|grade|band|tier|class|type|page|version|rev|para|paragraph|clause|'
@@ -748,6 +754,7 @@ _PUNCTUATION_CHECKS = {
     'OxfordComma': lambda d, r: _flag_regex(d, _OXFORD, "list of 3+ items may be missing an Oxford comma before 'and'/'or'"),
     'NumbersBelowTen': _check_numbers_below_ten,
     'CaptionNoPeriod': _check_caption_no_period,
+    'CompoundModifiers': lambda d, r: _flag_regex(d, _COMPOUND_MOD, "number+unit used as a modifier — hyphenate (e.g. '15-page document')"),
 }
 _GRAMMAR_CHECKS = {
     'NoSentenceStartEgIe': lambda d, r: _flag_regex(d, _SENT_EGIE, "sentence starts with e.g./i.e. — rephrase (e.g. 'for example')"),

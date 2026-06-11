@@ -177,6 +177,7 @@ NEW_CASES = [
     {"rt": "Punctuation", "cv": "PunctuationBeforeEgIe", "text": "Use tools e.g. drawings for this."},
     {"rt": "Punctuation", "cv": "OxfordComma", "text": "We need bricks, mortar and sand here."},
     {"rt": "Punctuation", "cv": "NumbersBelowTen", "text": "There are 3 teams on the site."},
+    {"rt": "Punctuation", "cv": "CompoundModifiers", "text": "Submit the 15 page report today."},
     {"rt": "Punctuation", "cv": "CaptionNoPeriod", "text": "Figure 1 The site location plan.",
      "caption": True},
     {"rt": "Grammar", "cv": "NoSentenceStartEgIe", "text": "E.g. the north wing is complete."},
