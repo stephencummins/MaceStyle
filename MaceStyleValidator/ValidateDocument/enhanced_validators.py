@@ -99,7 +99,6 @@ BRITISH_SPELLINGS = {
     'specialize': 'specialise',
     'specialized': 'specialised',
     'maximize': 'maximise',
-    'minimise': 'minimise',
     'customize': 'customise',
     'customized': 'customised',
     'program': 'programme',  # Mace house style prefers 'programme'
@@ -113,6 +112,79 @@ BRITISH_SPELLINGS = {
     'traveling': 'travelling',
     'traveled': 'travelled',
     'enrollment': 'enrolment',
+    # --- Additional mappings to cover the full live Mace rule set (2026-06-22).
+    # Previously 27 of 51 BritishSpelling_* rules silently no-op'd because their
+    # British target had no American->British entry here (Natasha/Jade test doc).
+    'analog': 'analogue',
+    'analogs': 'analogues',
+    'caliber': 'calibre',
+    'calibers': 'calibres',
+    'characterize': 'characterise',
+    'characterizes': 'characterises',
+    'characterized': 'characterised',
+    'characterizing': 'characterising',
+    'dialog': 'dialogue',
+    'dialogs': 'dialogues',
+    'dike': 'dyke',
+    'dikes': 'dykes',
+    'enroll': 'enrol',
+    'enrolls': 'enrols',
+    'equalize': 'equalise',
+    'equalizes': 'equalises',
+    'equalized': 'equalised',
+    'equalizing': 'equalising',
+    'fiberglass': 'fibreglass',
+    'fulfill': 'fulfil',
+    'fulfills': 'fulfils',
+    'gray': 'grey',
+    'homogenize': 'homogenise',
+    'homogenizes': 'homogenises',
+    'homogenized': 'homogenised',
+    'homogenizing': 'homogenising',
+    'instill': 'instil',
+    'instills': 'instils',
+    'maneuver': 'manoeuvre',
+    'maneuvers': 'manoeuvres',
+    'maneuvered': 'manoeuvred',
+    'maneuvering': 'manoeuvring',
+    'mobilize': 'mobilise',
+    'mobilizes': 'mobilises',
+    'mobilized': 'mobilised',
+    'mobilizing': 'mobilising',
+    'neighbor': 'neighbour',
+    'neighbors': 'neighbours',
+    'neighboring': 'neighbouring',
+    'neighborhood': 'neighbourhood',
+    'neutralize': 'neutralise',
+    'neutralizes': 'neutralises',
+    'neutralized': 'neutralised',
+    'neutralizing': 'neutralising',
+    'normalize': 'normalise',
+    'normalizes': 'normalises',
+    'normalized': 'normalised',
+    'normalizing': 'normalising',
+    'odor': 'odour',
+    'odors': 'odours',
+    'recognizing': 'recognising',
+    'skillful': 'skilful',
+    'skillfully': 'skilfully',
+    'spelled': 'spelt',
+    'stabilize': 'stabilise',
+    'stabilizes': 'stabilises',
+    'stabilized': 'stabilised',
+    'stabilizing': 'stabilising',
+    'sulfide': 'sulphide',
+    'sulfides': 'sulphides',
+    'tunneling': 'tunnelling',
+    'tunneled': 'tunnelled',
+    'tire': 'tyre',
+    'tires': 'tyres',
+    'learned': 'learnt',
+    'percent': 'per cent',
+    # Deliberately NOT mapped: curb->kerb. "curb" is also the standard verb
+    # (curb costs/risk) in both UK and US English, so auto-fixing every "curb"
+    # to "kerb" would corrupt correct text. The kerb rule stays a no-op rather
+    # than risk false positives.
 }
 
 # Reverse map: British word -> list of American spellings that should be
@@ -120,7 +192,36 @@ BRITISH_SPELLINGS = {
 # CheckValue/ExpectedValue rather than the American one.
 _AMERICAN_FOR_BRITISH = {}
 for _am, _br in BRITISH_SPELLINGS.items():
+    # Skip any accidental self-maps (american == british): searching for the
+    # British word and "fixing" it to itself is a no-op that still inflates the
+    # issue/fix counts.
+    if _am.lower() == _br.lower():
+        continue
     _AMERICAN_FOR_BRITISH.setdefault(_br.lower(), []).append(_am)
+
+
+def _derive_american_forms(british):
+    """Best-effort algorithmic derivation of the American spelling(s) of a
+    British word using regular orthographic patterns, so a NEW BritishSpelling_*
+    rule whose target isn't in the explicit map above still does something
+    instead of silently no-op'ing. Conservative: only fires on well-known
+    regular patterns and never returns the British word itself."""
+    b = british.lower()
+    out = set()
+    if b.endswith('ise'):  # organise -> organize (+ inflections)
+        stem = b[:-3]
+        out.update({stem + 'ize', stem + 'izes', stem + 'ized', stem + 'izing'})
+    if b.endswith('isation'):  # organisation -> organization
+        out.add(b[:-7] + 'ization')
+    if b.endswith('our'):  # colour -> color
+        stem = b[:-3]
+        out.update({stem + 'or', stem + 'ors'})
+    if b.endswith('re') and len(b) > 4:  # centre -> center, fibre -> fiber
+        out.update({b[:-2] + 'er', b[:-2] + 'ers'})
+    if b.endswith('ogue'):  # catalogue -> catalog, dialogue -> dialog
+        out.update({b[:-4] + 'og', b[:-4] + 'ogs'})
+    out.discard(b)
+    return sorted(out)
 
 # Contractions to expand
 CONTRACTIONS = {
@@ -171,6 +272,11 @@ def _resolve_spelling_rule(rule):
     ekey = expected.lower()
     if ekey in _AMERICAN_FOR_BRITISH:
         return _AMERICAN_FOR_BRITISH[ekey], expected
+    # Fallback: derive the American form from the (British) target word so a new
+    # rule that isn't in the explicit map still works for the regular patterns.
+    derived = _derive_american_forms(suffix) or _derive_american_forms(expected)
+    if derived:
+        return derived, (expected or suffix)
     return None, None
 
 
