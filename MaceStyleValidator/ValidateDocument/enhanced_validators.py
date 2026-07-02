@@ -3,6 +3,112 @@ Enhanced validation functions for all style rules
 """
 import re
 import logging
+import datetime
+from copy import deepcopy
+
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+
+
+# ============================================
+# TRACKED-CHANGE HELPERS (suggested changes)
+# ============================================
+# For rules with auto_fix=False we apply the suggested change as a native Word
+# tracked revision (a w:del of the old text + a w:ins of the new). The reviewer
+# opens the document in Word and Accepts or Rejects each one — a single click,
+# leaving no residue to clean up (unlike a highlight). Confident auto-fixes are
+# still applied silently; only suggestions become tracked changes.
+
+_TRACK_AUTHOR = 'Mace Style Validator'
+_rev_counter = [1000]
+
+
+def _rev_id():
+    _rev_counter[0] += 1
+    return str(_rev_counter[0])
+
+
+def _mark_revision(el):
+    el.set(qn('w:id'), _rev_id())
+    el.set(qn('w:author'), _TRACK_AUTHOR)
+    el.set(qn('w:date'), datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'))
+
+
+def _run_shell(src_r):
+    """Clone a <w:r>, preserving its formatting (rPr) but stripping any text/
+    break children so the caller can attach fresh text."""
+    new_r = deepcopy(src_r)
+    for child in list(new_r):
+        if child.tag in (qn('w:t'), qn('w:delText'), qn('w:tab'), qn('w:br'), qn('w:cr')):
+            new_r.remove(child)
+    return new_r
+
+
+def _plain_run(src_r, text):
+    new_r = _run_shell(src_r)
+    t = OxmlElement('w:t')
+    t.set(qn('xml:space'), 'preserve')
+    t.text = text
+    new_r.append(t)
+    return new_r
+
+
+def _tracked_replace_in_run(run, compiled, repl):
+    """Apply each genuine change of `compiled` in `run` as a Word tracked
+    revision (delete old + insert new), splitting the run so surrounding text
+    and formatting are preserved. `repl` is a string or callable(match)->str.
+    Unchanged matches are left as normal text. Returns the number of changes.
+    """
+    text = run.text
+    if not text:
+        return 0
+    parts = []  # ('t', text) | ('c', old, new)
+    last = 0
+    n = 0
+    for m in compiled.finditer(text):
+        original = m.group(0)
+        replacement = repl(m) if callable(repl) else repl
+        if replacement == original:
+            continue  # no real change — leave as normal text
+        if m.start() > last:
+            parts.append(('t', text[last:m.start()]))
+        parts.append(('c', original, replacement))
+        last = m.end()
+        n += 1
+    if n == 0:
+        return 0
+    if last < len(text):
+        parts.append(('t', text[last:]))
+
+    r = run._r
+    parent = r.getparent()
+    idx = list(parent).index(r)
+    for part in parts:
+        if part[0] == 't':
+            if part[1]:
+                parent.insert(idx, _plain_run(r, part[1]))
+                idx += 1
+            continue
+        _, old, new = part
+        # Tracked deletion of the old text
+        del_el = OxmlElement('w:del')
+        _mark_revision(del_el)
+        del_r = _run_shell(r)
+        dtext = OxmlElement('w:delText')
+        dtext.set(qn('xml:space'), 'preserve')
+        dtext.text = old
+        del_r.append(dtext)
+        del_el.append(del_r)
+        parent.insert(idx, del_el)
+        idx += 1
+        # Tracked insertion of the new text
+        ins_el = OxmlElement('w:ins')
+        _mark_revision(ins_el)
+        ins_el.append(_plain_run(r, new))
+        parent.insert(idx, ins_el)
+        idx += 1
+    parent.remove(r)
+    return n
 
 
 def iter_all_paragraphs(container):
@@ -299,29 +405,29 @@ def check_british_spelling(doc, rule):
             return british_word.capitalize()
         return british_word
 
-    issue_count = 0
+    combined = re.compile(
+        r'\b(?:' + '|'.join(re.escape(w) for w in american_forms) + r')\b', re.IGNORECASE)
+    auto = rule['auto_fix']
     fix_count = 0
+    suggest_count = 0
 
-    for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
-        for run in paragraph.runs:
-            if not run.text:
-                continue
-            for american_word in american_forms:
-                pattern = r'\b' + re.escape(american_word) + r'\b'
-                matches = re.findall(pattern, run.text, re.IGNORECASE)
-                if not matches:
-                    continue
-                issue_count += len(matches)
-                if rule['auto_fix']:
-                    before = run.text
-                    run.text = re.sub(pattern, replace_preserve_case, run.text, flags=re.IGNORECASE)
-                    changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
-                    fix_count += len(matches)
+    for para_idx, run in _iter_runs(doc):
+        matches = combined.findall(run.text)
+        if not matches:
+            continue
+        if auto:
+            before = run.text
+            run.text = combined.sub(replace_preserve_case, run.text)
+            if run.text != before:
+                changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
+                fix_count += len(matches)
+        else:
+            suggest_count += _tracked_replace_in_run(run, combined, replace_preserve_case)
 
-    if issue_count > 0 and not rule['auto_fix']:
-        issues.append(f"Found {issue_count} instances of American spelling (use '{british_word}')")
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} instances to British spelling '{british_word}'")
+    if suggest_count > 0:
+        fixes.append(f"Suggested {suggest_count} change(s) to British spelling '{british_word}' — proposed as tracked changes to accept or reject")
 
     return {'issues': issues, 'fixes': fixes, 'changes': changes}
 
@@ -353,31 +459,31 @@ def check_contractions(doc, rule):
     expanded = rule['expected_value']
     pattern = _contraction_pattern(canonical)
 
-    issue_count = 0
+    auto = rule['auto_fix']
     fix_count = 0
+    suggest_count = 0
 
     def _expand(match):
         # Preserve a leading capital (e.g. start of sentence)
         return expanded.capitalize() if match.group(0)[0].isupper() else expanded
 
     # Check all paragraphs (including those inside tables)
-    for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
-        for run in paragraph.runs:
-            if not run.text:
-                continue
-            matches = pattern.findall(run.text)
-            if matches:
-                issue_count += len(matches)
-                if rule['auto_fix']:
-                    before = run.text
-                    run.text = pattern.sub(_expand, run.text)
-                    changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
-                    fix_count += len(matches)
+    for para_idx, run in _iter_runs(doc):
+        matches = pattern.findall(run.text)
+        if not matches:
+            continue
+        if auto:
+            before = run.text
+            run.text = pattern.sub(_expand, run.text)
+            changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
+            fix_count += len(matches)
+        else:
+            suggest_count += _tracked_replace_in_run(run, pattern, _expand)
 
-    if issue_count > 0 and not rule['auto_fix']:
-        issues.append(f"Found {issue_count} instances of contraction '{canonical}'")
     if fix_count > 0:
         fixes.append(f"Fixed {fix_count} contractions to '{expanded}'")
+    if suggest_count > 0:
+        fixes.append(f"Suggested {suggest_count} change(s) expanding '{canonical}' to '{expanded}' — proposed as tracked changes to accept or reject")
 
     return {'issues': issues, 'fixes': fixes, 'changes': changes}
 
@@ -392,25 +498,30 @@ def check_word_choice(doc, rule):
     # Handle specific word choice rules
     if check_value == 'Word_toward':
         # Replace 'towards' with 'toward'
-        issue_count = 0
+        toward_pat = re.compile(r'\btowards\b', re.IGNORECASE)
+
+        def _toward(m):
+            return 'Toward' if m.group(0)[0].isupper() else 'toward'
+
+        auto = rule['auto_fix']
         fix_count = 0
+        suggest_count = 0
 
-        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
-            for run in paragraph.runs:
-                if run.text and 'towards' in run.text.lower():
-                    matches = len(re.findall(r'\btowards\b', run.text, re.IGNORECASE))
-                    issue_count += matches
+        for para_idx, run in _iter_runs(doc):
+            if not toward_pat.search(run.text):
+                continue
+            if auto:
+                before = run.text
+                run.text = toward_pat.sub(_toward, run.text)
+                changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
+                fix_count += len(toward_pat.findall(before))
+            else:
+                suggest_count += _tracked_replace_in_run(run, toward_pat, _toward)
 
-                    if rule['auto_fix']:
-                        before = run.text
-                        run.text = re.sub(r'\btowards\b', 'toward', run.text, flags=re.IGNORECASE)
-                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
-                        fix_count += matches
-
-        if issue_count > 0 and not rule['auto_fix']:
-            issues.append(f"Found {issue_count} instances of 'towards'")
         if fix_count > 0:
             fixes.append(f"Fixed {fix_count} instances to 'toward'")
+        if suggest_count > 0:
+            fixes.append(f"Suggested {suggest_count} change(s) 'towards' to 'toward' — proposed as tracked changes to accept or reject")
 
     elif check_value == 'AvoidEtc':
         # Flag usage of 'etc.'
@@ -441,50 +552,50 @@ def check_symbols(doc, rule):
 
     if check_value == 'NoAmpersand':
         # Replace & with 'and'
-        issue_count = 0
+        amp_pat = re.compile(r'&')
+        auto = rule['auto_fix']
         fix_count = 0
+        suggest_count = 0
 
-        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
-            for run in paragraph.runs:
-                if run.text and '&' in run.text:
-                    # Count ampersands (exclude &nbsp; and other HTML entities)
-                    matches = len([c for c in run.text if c == '&'])
-                    issue_count += matches
+        for para_idx, run in _iter_runs(doc):
+            if '&' not in run.text:
+                continue
+            if auto:
+                before = run.text
+                run.text = run.text.replace('&', 'and')
+                changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
+                fix_count += before.count('&')
+            else:
+                suggest_count += _tracked_replace_in_run(run, amp_pat, 'and')
 
-                    if rule['auto_fix']:
-                        before = run.text
-                        run.text = run.text.replace('&', 'and')
-                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
-                        fix_count += matches
-
-        if issue_count > 0 and not rule['auto_fix']:
-            issues.append(f"Found {issue_count} ampersands (&)")
         if fix_count > 0:
             fixes.append(f"Fixed {fix_count} ampersands to 'and'")
+        if suggest_count > 0:
+            fixes.append(f"Suggested {suggest_count} change(s) '&' to 'and' — proposed as tracked changes to accept or reject")
 
     elif check_value == 'PercentSymbol':
-        # Replace % with 'percent' in text (not in numbers like "85%")
-        issue_count = 0
+        # Replace number% with 'number percent' (e.g. "85%" -> "85 percent")
+        pct_pat = re.compile(r'(\d+)%')
+        auto = rule['auto_fix']
         fix_count = 0
+        suggest_count = 0
 
-        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
-            for run in paragraph.runs:
-                if run.text and '%' in run.text:
-                    # Find number% patterns
-                    matches = re.findall(r'\d+%', run.text)
-                    issue_count += len(matches)
+        for para_idx, run in _iter_runs(doc):
+            matches = pct_pat.findall(run.text)
+            if not matches:
+                continue
+            if auto:
+                before = run.text
+                run.text = pct_pat.sub(r'\1 percent', run.text)
+                changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
+                fix_count += len(matches)
+            else:
+                suggest_count += _tracked_replace_in_run(run, pct_pat, lambda m: f"{m.group(1)} percent")
 
-                    if rule['auto_fix']:
-                        before = run.text
-                        # Replace number% with number percent
-                        run.text = re.sub(r'(\d+)%', r'\1 percent', run.text)
-                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
-                        fix_count += len(matches)
-
-        if issue_count > 0 and not rule['auto_fix']:
-            issues.append(f"Found {issue_count} percent symbols (%)")
         if fix_count > 0:
             fixes.append(f"Fixed {fix_count} percent symbols to 'percent'")
+        if suggest_count > 0:
+            fixes.append(f"Suggested {suggest_count} change(s) '%' to 'percent' — proposed as tracked changes to accept or reject")
 
     elif check_value == 'NoApostrophePlurals':
         # Detect incorrect apostrophes in plurals (e.g., CD's, SME's)
@@ -512,32 +623,39 @@ def check_numbers(doc, rule):
     check_value = rule['check_value']
 
     if check_value == 'NumberCommas':
-        # Check for numbers 1000+ without commas
-        issue_count = 0
+        # Numbers with 4+ digits and no commas (excluding years 1900-2099)
+        num_pat = re.compile(r'\b\d{4,}\b')
+
+        def _is_target(token):
+            return not (1900 <= int(token) <= 2099)
+
+        def _comma(m):
+            tok = m.group(0)
+            return '{:,}'.format(int(tok)) if _is_target(tok) else tok
+
+        auto = rule['auto_fix']
         fix_count = 0
+        suggest_count = 0
 
-        for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
-            for run in paragraph.runs:
-                if run.text:
-                    # Find numbers with 4+ digits without commas
-                    matches = re.findall(r'\b\d{4,}\b', run.text)
-                    # Filter out years (1900-2099)
-                    matches = [m for m in matches if not (1900 <= int(m) <= 2099)]
-                    issue_count += len(matches)
+        for para_idx, run in _iter_runs(doc):
+            targets = [m for m in num_pat.findall(run.text) if _is_target(m)]
+            if not targets:
+                continue
+            if auto:
+                before = run.text
+                run.text = num_pat.sub(_comma, run.text)
+                changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
+                fix_count += len(targets)
+            else:
+                # highlight only the comma-needing numbers (years pass through untouched)
+                tgt_pat = re.compile(
+                    r'\b(?:' + '|'.join(re.escape(t) for t in dict.fromkeys(targets)) + r')\b')
+                suggest_count += _tracked_replace_in_run(run, tgt_pat, _comma)
 
-                    if rule['auto_fix'] and matches:
-                        before = run.text
-                        # Add commas to numbers
-                        for match in matches:
-                            formatted = '{:,}'.format(int(match))
-                            run.text = run.text.replace(match, formatted)
-                            fix_count += 1
-                        changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
-
-        if issue_count > 0 and not rule['auto_fix']:
-            issues.append(f"Found {issue_count} numbers missing commas")
         if fix_count > 0:
             fixes.append(f"Added commas to {fix_count} numbers")
+        if suggest_count > 0:
+            fixes.append(f"Suggested comma formatting on {suggest_count} number(s) — proposed as tracked changes to accept or reject")
 
     return {'issues': issues, 'fixes': fixes, 'changes': changes}
 
@@ -561,26 +679,31 @@ def _flag_regex(doc, pattern, label):
 
 
 def _replace_regex(doc, rule, pattern, repl, label):
-    """Replace regex matches when the rule auto-fixes; otherwise just flag them.
+    """Apply a regex replacement. If the rule auto-fixes, replace silently; if
+    not, apply the suggested replacement and highlight it yellow for review.
     `repl` may be a string or a callable (re.sub semantics)."""
-    issue_count = 0
     fix_count = 0
+    suggest_count = 0
     changes = []
     auto = rule.get('auto_fix')
     for para_idx, run in _iter_runs(doc):
         matches = pattern.findall(run.text)
         if not matches:
             continue
-        issue_count += len(matches)
         if auto:
             before = run.text
             run.text = pattern.sub(repl, run.text)
             if run.text != before:
                 changes.append({'before': before, 'after': run.text, 'location': f'Paragraph {para_idx + 1}'})
                 fix_count += len(matches)
-    issues = [f"Found {issue_count} instance(s): {label}"] if (issue_count and not auto) else []
-    fixes = [f"Fixed {fix_count} instance(s): {label}"] if fix_count else []
-    return {'issues': issues, 'fixes': fixes, 'changes': changes}
+        else:
+            suggest_count += _tracked_replace_in_run(run, pattern, repl)
+    fixes = []
+    if fix_count:
+        fixes.append(f"Fixed {fix_count} instance(s): {label}")
+    if suggest_count:
+        fixes.append(f"Suggested {suggest_count} change(s) — proposed as tracked changes to accept or reject: {label}")
+    return {'issues': [], 'fixes': fixes, 'changes': changes}
 
 
 # ============================================
@@ -628,7 +751,10 @@ def check_phrase_replace(doc, rule):
     suggestion = (rule.get('expected_value') or '').strip()
     label = f"wordy phrase '{phrase}'" + (f" — use '{suggestion}'" if suggestion else '')
     pattern = _phrase_pattern(phrase)
-    if rule.get('auto_fix') and suggestion and '/' not in suggestion:
+    # A concrete one-to-one suggestion (no "X/Y" ambiguity) can be applied and,
+    # when the rule is suggest-only, highlighted yellow. _replace_regex handles
+    # both the auto-fix and the suggest+highlight paths.
+    if suggestion and '/' not in suggestion:
         return _replace_regex(doc, rule, pattern, suggestion, label)
     return _flag_regex(doc, pattern, label)
 
