@@ -4,8 +4,14 @@ import msal
 import requests
 
 # Claude AI configuration
-# Toggle AI validation on/off. Set to True to re-enable Claude API calls.
-ENABLE_CLAUDE_AI = False
+# Toggle AI validation via the ENABLE_CLAUDE_AI app setting ("true"/"false"). Default off.
+ENABLE_CLAUDE_AI = os.environ.get("ENABLE_CLAUDE_AI", "false").lower() == "true"
+# AI_PROVIDER selects where Claude is hosted:
+#   "anthropic" - direct Anthropic API (ANTHROPIC_API_KEY) - current setup
+#   "foundry"   - Claude in Microsoft Foundry (FOUNDRY_RESOURCE + FOUNDRY_API_KEY) - Mace target state.
+#                 CLAUDE_MODEL must then match the Foundry deployment name (e.g. "claude-haiku-4-5").
+AI_PROVIDER = os.environ.get("AI_PROVIDER", "anthropic")
+CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5-20251001")
 
 # SharePoint write ownership.
 # When False (default), the Power Automate flow owns ALL SharePoint writes
@@ -14,7 +20,6 @@ ENABLE_CLAUDE_AI = False
 # write directly (legacy behaviour) — but only if the flow's write actions are
 # removed, otherwise you get duplicate list items / report files.
 ENABLE_FUNCTION_SHAREPOINT_WRITES = False
-CLAUDE_MODEL = "claude-haiku-4-5-20251001"
 CLAUDE_MAX_TOKENS = 8192
 CLAUDE_TEMPERATURE = 0.3
 

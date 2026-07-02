@@ -186,11 +186,17 @@ def get_health_status() -> dict:
         "missing_vars": missing,
     }
 
-    # Check Claude API key
-    has_claude = bool(os.environ.get("ANTHROPIC_API_KEY"))
+    # Check Claude API key (direct Anthropic or Microsoft Foundry, per AI_PROVIDER)
+    provider = os.environ.get("AI_PROVIDER", "anthropic")
+    if provider == "foundry":
+        has_claude = bool(os.environ.get("FOUNDRY_RESOURCE") and os.environ.get("FOUNDRY_API_KEY"))
+        missing_msg = "FOUNDRY_RESOURCE/FOUNDRY_API_KEY not set — AI validation disabled"
+    else:
+        has_claude = bool(os.environ.get("ANTHROPIC_API_KEY"))
+        missing_msg = "ANTHROPIC_API_KEY not set — AI validation disabled"
     health["checks"]["claude_api"] = {
         "status": "healthy" if has_claude else "degraded",
-        "detail": "API key configured" if has_claude else "ANTHROPIC_API_KEY not set — AI validation disabled",
+        "detail": f"API key configured ({provider})" if has_claude else missing_msg,
     }
 
     # Check access control

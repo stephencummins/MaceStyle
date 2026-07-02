@@ -6,7 +6,7 @@ Automated document validation system enforcing the Mace Control Centre Writing S
 
 - **Azure Function** (Python 3.11) triggered via Power Automate on SharePoint document upload
 - **SharePoint Online** stores documents, style rules (`Style Rules` list), and validation results (`Validation Results` list)
-- **Claude AI** (Haiku 4.5) for intelligent language corrections (rules with `UseAI: Yes`)
+- **Claude AI** (Haiku 4.5) for intelligent language corrections (rules with `UseAI: Yes`). Provider-switchable via `AI_PROVIDER`: `anthropic` (direct API, personal key — current) or `foundry` (Claude in Microsoft Foundry — Mace target state; dormant resource `foundry-mace-validator` in rg-mace-validator, eastus2, awaits Marketplace terms acceptance in the Foundry portal before a model can deploy)
 - **Microsoft Graph API** for SharePoint integration, authenticated via Azure AD (MSAL)
 
 ## Security
@@ -15,7 +15,7 @@ Automated document validation system enforcing the Mace Control Centre Writing S
 - **Endpoint auth**: All HTTP routes require a function key (`auth_level=FUNCTION`), except MaceyBot (ANONYMOUS, required for Teams webhook). Keys managed in Azure Portal > App keys.
 - **Credentials**: All Azure AD identifiers and secrets are env-var only. No hardcoded defaults anywhere.
 - **Data classification**: Documents >50K chars trigger a warning log before being sent to the external AI service. Ensure document classification permits external processing.
-- **Dependencies**: Critical packages pinned to exact versions (`anthropic==0.84.0`, `openpyxl==3.1.5`, `python-pptx==1.0.2`).
+- **Dependencies**: Critical packages pinned to exact versions (`anthropic==0.103.1` — minimum for the `AnthropicFoundry` client, `openpyxl==3.1.5`, `python-pptx==1.0.2`).
 
 ## Project Structure
 
@@ -68,7 +68,13 @@ Required in Azure Function App Settings or `local.settings.json`:
 - `SHAREPOINT_SITE_URL` (e.g. `https://tenant.sharepoint.com/sites/StyleValidation`)
 - `SHAREPOINT_DOC_LIBRARY_ID` - SharePoint document library list GUID
 - `SHAREPOINT_VALIDATION_RESULTS_ID` - SharePoint validation results list GUID
-- `ANTHROPIC_API_KEY`
+- `ANTHROPIC_API_KEY` (when `AI_PROVIDER=anthropic`, the default)
+
+Optional (AI validation):
+- `ENABLE_CLAUDE_AI` — `true`/`false` (default `false`). Toggles AI rule validation without redeploying.
+- `AI_PROVIDER` — `anthropic` (default) or `foundry` (Mace target state)
+- `CLAUDE_MODEL` — Override the model (default `claude-haiku-4-5-20251001`; must be the Foundry deployment name when `AI_PROVIDER=foundry`, e.g. `claude-haiku-4-5`)
+- `FOUNDRY_RESOURCE`, `FOUNDRY_API_KEY` — Required when `AI_PROVIDER=foundry`
 
 Optional (MaceyBot):
 - `MACEY_MODEL` - Override Claude model for MaceyBot (default: `claude-sonnet-4-20250514`)
@@ -105,6 +111,6 @@ Run the check: `python3 governance_check.py` (requires `.venv` with `agent-gover
 
 - `local.settings.json` and `.env` are gitignored - never commit secrets
 - All SharePoint credentials and list IDs must be set via environment variables (no hardcoded defaults)
-- Claude model and settings configured in `config.py` (currently Haiku 4.5, 8192 max tokens)
+- Claude model and settings configured in `config.py`, overridable via env vars (`ENABLE_CLAUDE_AI`, `AI_PROVIDER`, `CLAUDE_MODEL`); currently Haiku 4.5, 8192 max tokens
 - Visio font detection uses numeric IDs (font 0 = Arial)
 - Large files (>100 pages) may timeout on Azure Functions consumption plan

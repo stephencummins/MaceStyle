@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MaceStyle — Bringing It In-House</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #130B01;
+    --teal: #00929F;
+    --purple: #892B90;
+    --orange: #F68427;
+    --gold: #FDB924;
+    --turq: #90D2C5;
+    --paper: #ffffff;
+    --mute: #5b5850;
+    --line: #e6e3dc;
+    --wash: #f6f8f8;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    color: var(--ink);
+    font-size: 10.5pt;
+    line-height: 1.5;
+    background: #eceae4;
+  }
+  .page {
+    max-width: 780px;
+    margin: 24px auto;
+    background: var(--paper);
+    padding: 46px 52px 40px;
+    box-shadow: 0 2px 24px rgba(0,0,0,.08);
+  }
+  .kicker {
+    font-size: 8.5pt; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--teal); font-weight: 600; margin: 0 0 6px;
+  }
+  h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 900; font-size: 30pt; line-height: 1.04;
+    margin: 0 0 4px; color: var(--ink); letter-spacing: -.01em;
+  }
+  .subtitle {
+    font-family: 'Fraunces', Georgia, serif; font-style: italic;
+    font-weight: 400; font-size: 14pt; color: var(--purple); margin: 0 0 14px;
+  }
+  .meta {
+    font-size: 8.5pt; color: var(--mute); border-top: 2px solid var(--ink);
+    border-bottom: 1px solid var(--line); padding: 8px 0; margin: 0 0 22px;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+  }
+  h2 {
+    font-family: 'Fraunces', Georgia, serif; font-weight: 600;
+    font-size: 15pt; margin: 26px 0 8px; color: var(--ink);
+    display: flex; align-items: center; gap: 9px;
+  }
+  h2::before {
+    content: ""; width: 7px; height: 20px; border-radius: 2px;
+    background: var(--teal); display: inline-block;
+  }
+  p { margin: 0 0 10px; }
+  .lead {
+    background: var(--wash); border-left: 4px solid var(--gold);
+    padding: 14px 18px; margin: 0 0 8px; font-size: 11pt;
+  }
+  .lead strong { color: var(--purple); }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; font-size: 9.5pt; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th {
+    background: var(--ink); color: #fff; font-weight: 600; font-size: 8.5pt;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+  tbody tr:nth-child(even) { background: var(--wash); }
+  td strong, th strong { color: var(--teal); }
+  .propose td:last-child strong { color: var(--purple); }
+  ol { margin: 4px 0 10px; padding-left: 20px; }
+  ol li { margin: 0 0 7px; }
+  ol li strong { color: var(--ink); }
+  .diagram { margin: 10px 0 18px; }
+  .diagram svg { width: 100%; height: auto; display: block; }
+  .figcap { font-size: 8pt; color: var(--mute); text-align: center; margin-top: 4px; }
+  .close {
+    background: linear-gradient(180deg, #0a1f22 0%, var(--ink) 100%);
+    color: #f4f2ec; padding: 20px 24px; border-radius: 6px; margin: 22px 0 6px;
+  }
+  .close h2 { color: #fff; margin-top: 0; }
+  .close h2::before { background: var(--gold); }
+  .close p { color: #d9d5cc; }
+  .close strong { color: var(--gold); }
+  .foot { font-size: 8pt; color: var(--mute); margin-top: 18px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .printbar {
+    position: fixed; top: 14px; right: 14px;
+  }
+  .printbar button {
+    font-family: 'Inter', sans-serif; font-size: 9pt; font-weight: 600;
+    background: var(--teal); color: #fff; border: 0; border-radius: 5px;
+    padding: 9px 15px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  }
+  @page { size: A4; margin: 14mm; }
+  @media print {
+    body { background: #fff; }
+    .page { box-shadow: none; margin: 0; max-width: none; padding: 0; }
+    .printbar { display: none; }
+    h2, .close, table, .diagram { break-inside: avoid; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="printbar"><button onclick="window.print()">Save as PDF</button></div>
+<div class="page">
+
+  <p class="kicker">AI Service Lead Brief</p>
+  <h1>MaceStyle: Bringing It In-House</h1>
+  <p class="subtitle">Running our Style Guide validator on Mace's own billing and governance</p>
+  <div class="meta">
+    <span>Prepared for <strong>Tobias</strong> by Stephen Cummins · AI Service Lead, Mace Digital</span>
+    <span>2 July 2026</span>
+  </div>
+
+  <div class="lead">
+    MaceStyle — the automated Style Guide validator already piloting on the Mace Way Control Centre —
+    can run entirely on <strong>Mace's own Azure billing and governance</strong>, at
+    <strong>pennies per document</strong>, with <strong>zero code changes</strong>. I've already proven
+    the switch end-to-end. It needs a Mace Azure subscription to own it and a data-governance nod.
+    Then it's roughly half a day to cut over.
+  </div>
+
+  <h2>What we have today</h2>
+  <p>
+    MaceStyle reads documents in the Mace Way Control Centre and checks them against the Writing Style
+    Guide — British spelling, contractions, symbols, number and font standards — flagging issues and
+    proposing corrections. It is <strong>live in pilot</strong>, validated by testers (Natasha, Jade) in
+    June. The intelligent rules are powered by Claude, which handles the judgement calls a simple
+    find-and-replace can't.
+  </p>
+  <p>
+    <strong>The catch:</strong> the AI currently runs on <em>my personal</em> Anthropic account and Azure
+    subscription. That proves the concept — it's not how Mace should run a service it depends on. To make
+    this a Mace service, the billing and governance need to sit inside Mace.
+  </p>
+
+  <h2>The proposal: run it on Mace's Azure, via Microsoft Foundry</h2>
+  <p>
+    Microsoft Foundry now offers Claude directly inside Azure. That changes the commercial picture
+    entirely:
+  </p>
+  <table class="propose">
+    <thead><tr><th></th><th>Today (my accounts)</th><th>Proposed (Mace)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Who pays</strong></td><td>Me, personally</td><td><strong>Mace's existing Azure invoice</strong></td></tr>
+      <tr><td><strong>How</strong></td><td>Separate Anthropic account</td><td>Azure Marketplace — a line on the bill we already pay</td></tr>
+      <tr><td><strong>Governance</strong></td><td>None to speak of</td><td><strong>Entra ID, RBAC, data zone, spend caps</strong></td></tr>
+      <tr><td><strong>Procurement</strong></td><td>—</td><td><strong>None.</strong> No new vendor, no new contract</td></tr>
+    </tbody>
+  </table>
+  <p>
+    The key point: <strong>no new supplier to onboard and no separate AI contract to negotiate.</strong>
+    Claude usage simply appears as consumption on the Azure agreement Mace already has. Microsoft handles
+    billing and governance; Anthropic operates the model.
+  </p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 720 128" role="img" aria-label="Mace Azure to Foundry to Claude flow">
+      <defs>
+        <marker id="arw" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#00929F"></path>
+        </marker>
+      </defs>
+      <!-- Mace Azure -->
+      <rect x="4" y="30" width="168" height="68" rx="7" fill="#f6f8f8" stroke="#130B01" stroke-width="1.5"></rect>
+      <text x="88" y="58" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#130B01">Mace Azure</text>
+      <text x="88" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="#5b5850">subscription &amp; invoice</text>
+      <!-- Function -->
+      <rect x="212" y="30" width="168" height="68" rx="7" fill="#eef7f8" stroke="#00929F" stroke-width="1.5"></rect>
+      <text x="296" y="54" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#0a5a63">MaceStyle</text>
+      <text x="296" y="70" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="#5b5850">Azure Function</text>
+      <text x="296" y="84" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#5b5850">(validates docs)</text>
+      <!-- Foundry -->
+      <rect x="420" y="30" width="168" height="68" rx="7" fill="#f7eef8" stroke="#892B90" stroke-width="1.5"></rect>
+      <text x="504" y="54" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#892B90">Microsoft Foundry</text>
+      <text x="504" y="70" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="#5b5850">billing + governance</text>
+      <text x="504" y="84" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#5b5850">(Entra ID · RBAC)</text>
+      <!-- Claude -->
+      <rect x="628" y="30" width="88" height="68" rx="7" fill="#fff6e6" stroke="#F68427" stroke-width="1.5"></rect>
+      <text x="672" y="60" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#c85f10">Claude</text>
+      <text x="672" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#5b5850">Anthropic</text>
+      <!-- arrows -->
+      <line x1="172" y1="64" x2="208" y2="64" stroke="#00929F" stroke-width="2" marker-end="url(#arw)"></line>
+      <line x1="380" y1="64" x2="416" y2="64" stroke="#00929F" stroke-width="2" marker-end="url(#arw)"></line>
+      <line x1="588" y1="64" x2="624" y2="64" stroke="#00929F" stroke-width="2" marker-end="url(#arw)"></line>
+      <text x="360" y="18" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" fill="#5b5850">All billing stays inside Mace's Azure agreement — no separate Anthropic contract</text>
+    </svg>
+    <p class="figcap">How MaceStyle runs under Mace: the Function calls Claude via Foundry, and usage bills to Mace's Azure invoice.</p>
+  </div>
+
+  <h2>What it costs</h2>
+  <p>
+    Consumption-based, and genuinely cheap at this scale. A document validation is a few thousand tokens
+    of AI — <strong>fractions of a penny to a couple of pence per document</strong>. Even at hundreds of
+    documents a day, this is a rounding error against the value of consistent, on-brand documentation
+    across the Control Centre. No upfront commitment; Mace pays only for what it uses.
+  </p>
+
+  <h2>What I need from you</h2>
+  <ol>
+    <li><strong>A home for it</strong> — nominate a Mace Azure subscription and cost centre to own the service. Mace already runs on Azure (the <em>mace365</em> tenant, Power Platform), so nothing new is stood up.</li>
+    <li><strong>A governance nod</strong> — document text is processed by a US-hosted model. Foundry's US data zone and Azure governance are built for exactly this; it needs Sapna's sign-off, which I'll tee up.</li>
+    <li><strong>Half a day of my time</strong> to cut over — I've already rehearsed the entire handover in a test environment, so this is execution, not discovery.</li>
+  </ol>
+
+  <div class="close">
+    <h2>Why this matters beyond MaceStyle</h2>
+    <p>
+      MaceStyle is the <strong>proof, not the point.</strong> It shows a repeatable pattern: identify a
+      real Mace problem, stand up an AI service to solve it, and hand it over running on Mace's own billing
+      and governance — safely, cheaply, and without a procurement cycle.
+    </p>
+    <p>
+      That pattern is the AI Service Lead role in practice. Give me the mandate and MaceStyle becomes the
+      <strong>first of several</strong> — each one an internal AI service that pays for itself in hours
+      saved and lands inside Mace's existing Azure controls from day one.
+    </p>
+  </div>
+
+  <p class="foot">
+    Technical detail for whoever provisions it: see the companion <em>Foundry Handover Runbook</em>.
+    &nbsp;·&nbsp; Stephen Cummins · AI Service Lead, Mace Digital · stephen.cummins@macegroup.com
+  </p>
+
+</div>
+</body>
+</html>

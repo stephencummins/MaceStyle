@@ -3,7 +3,31 @@ import os
 import json
 import logging
 from anthropic import Anthropic
-from .config import ENABLE_CLAUDE_AI, CLAUDE_MODEL, CLAUDE_MAX_TOKENS, CLAUDE_TEMPERATURE
+from .config import ENABLE_CLAUDE_AI, AI_PROVIDER, CLAUDE_MODEL, CLAUDE_MAX_TOKENS, CLAUDE_TEMPERATURE
+
+
+def get_ai_client():
+    """Return a Messages-API client for the configured provider, or None if unconfigured.
+
+    Both providers expose the identical client.messages.create() surface, so the
+    rest of this module is provider-agnostic. Switching to Mace's Foundry later
+    is an app-settings change only (AI_PROVIDER, FOUNDRY_RESOURCE, FOUNDRY_API_KEY,
+    CLAUDE_MODEL) - no code change.
+    """
+    if AI_PROVIDER == "foundry":
+        from anthropic import AnthropicFoundry
+        resource = os.environ.get("FOUNDRY_RESOURCE")
+        api_key = os.environ.get("FOUNDRY_API_KEY")
+        if not (resource and api_key):
+            logging.warning("FOUNDRY_RESOURCE/FOUNDRY_API_KEY not set - skipping AI validation")
+            return None
+        return AnthropicFoundry(resource=resource, api_key=api_key)
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        logging.warning("ANTHROPIC_API_KEY not set - skipping AI validation")
+        return None
+    return Anthropic(api_key=api_key)
 
 
 def build_dynamic_prompt(ai_rules, document_text):
@@ -48,9 +72,8 @@ def call_claude(ai_rules, document_text):
         logging.info("Claude AI validation is disabled (ENABLE_CLAUDE_AI=False)")
         return None
 
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        logging.warning("ANTHROPIC_API_KEY not set - skipping AI validation")
+    client = get_ai_client()
+    if client is None:
         return None
 
     # Data classification warning for large documents
@@ -61,10 +84,9 @@ def call_claude(ai_rules, document_text):
             "Ensure document classification permits external processing."
         )
 
-    client = Anthropic(api_key=api_key)
     prompt = build_dynamic_prompt(ai_rules, document_text)
 
-    logging.info(f"Calling Claude ({CLAUDE_MODEL}) with {text_len} chars, {len(ai_rules)} rules")
+    logging.info(f"Calling Claude ({CLAUDE_MODEL} via {AI_PROVIDER}) with {text_len} chars, {len(ai_rules)} rules")
 
     response = client.messages.create(
         model=CLAUDE_MODEL,
