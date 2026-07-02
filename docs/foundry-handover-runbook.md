@@ -106,6 +106,30 @@ curl -s -X POST "https://foundry-macestyle-prod.services.ai.azure.com/anthropic/
   -d '{"model":"claude-haiku-4-5","max_tokens":30,"messages":[{"role":"user","content":"Reply with exactly: Foundry OK"}]}'
 ```
 
+> ### 🔑 Handle the key securely — never paste it into a file
+>
+> The commands above **print** the key so you can use it immediately; they do not persist it. **Never commit the key to this repo, paste it into a document, or send it by email** — it lands in history/inboxes permanently and would then have to be rotated. This project's rule is secrets are env-var / Key Vault only, no hardcoded defaults.
+>
+> **Recommended: store the key in Azure Key Vault and reference it from the Function App**, so the raw secret never sits in app settings either:
+>
+> ```bash
+> # 1. Put the key in Key Vault (run once; the key value stays in your shell, not on disk)
+> az keyvault secret set --vault-name <mace-keyvault> --name foundry-api-key \
+>   --value "$(az cognitiveservices account keys list -n foundry-macestyle-prod -g <mace-rg> --query key1 -o tsv)"
+>
+> # 2. Give the Function App a managed identity and grant it 'get' on secrets
+> az functionapp identity assign -n <function-app> -g <function-rg>
+> az keyvault set-policy --name <mace-keyvault> \
+>   --object-id "$(az functionapp identity show -n <function-app> -g <function-rg> --query principalId -o tsv)" \
+>   --secret-permissions get
+>
+> # 3. Point FOUNDRY_API_KEY at the vault via a Key Vault reference (Step 5 uses this instead of the raw key)
+> az functionapp config appsettings set -n <function-app> -g <function-rg> --settings \
+>   FOUNDRY_API_KEY="@Microsoft.KeyVault(VaultName=<mace-keyvault>;SecretName=foundry-api-key)"
+> ```
+>
+> The Function reads the resolved secret at runtime exactly as if it were a plain value — no code change. If you skip Key Vault for a quick test, at minimum keep the key only in the Function App setting (Step 5) and **rotate it** (`az cognitiveservices account keys regenerate`) if it is ever exposed.
+
 ## Step 4: Decide where the Function lives
 
 Two options:
@@ -125,8 +149,10 @@ az functionapp config appsettings set -n <function-app> -g <function-rg> --setti
   AI_PROVIDER=foundry \
   CLAUDE_MODEL=claude-haiku-4-5 \
   FOUNDRY_RESOURCE=foundry-macestyle-prod \
-  FOUNDRY_API_KEY="<key from Step 3>"
+  FOUNDRY_API_KEY="<Key Vault reference from Step 3, or raw key for a quick test>"
 ```
+
+For `FOUNDRY_API_KEY`, prefer the **Key Vault reference** from Step 3 (`@Microsoft.KeyVault(VaultName=...;SecretName=foundry-api-key)`) so the raw secret never lives in app settings. A raw key is acceptable only for a throwaway test — rotate it afterwards.
 
 > **Critical:** `CLAUDE_MODEL` must be the **Foundry deployment name** (`claude-haiku-4-5`), **not** the dated Anthropic string (`claude-haiku-4-5-20251001`). The dated string 404s against Foundry.
 
