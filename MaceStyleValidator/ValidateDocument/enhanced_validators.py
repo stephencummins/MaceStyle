@@ -964,6 +964,62 @@ def _check_proper_noun_derivations(doc, rule):
                        f"(e.g. 'welsh' to 'Welsh')"] if count else [], 'fixes': [], 'changes': []}
 
 
+_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+           'August', 'September', 'October', 'November', 'December']
+
+
+def _parse_numeric_date(s):
+    """Parse a numeric date, assuming UK day-first order for DD/MM/YYYY forms.
+    ISO YYYY-MM-DD is unambiguous. Returns a date, or None if implausible — so
+    we never reformat something that isn't clearly a UK-order date (a US-order
+    date like 02/13/2015 has month 13 and is left untouched)."""
+    s = s.strip()
+    try:
+        iso = re.match(r'^(\d{4})-(\d{1,2})-(\d{1,2})$', s)
+        if iso:
+            y, mo, d = int(iso.group(1)), int(iso.group(2)), int(iso.group(3))
+        else:
+            parts = re.split(r'[/.]', s)
+            if len(parts) != 3:
+                return None
+            d, mo, y = int(parts[0]), int(parts[1]), int(parts[2])
+            if y < 100:
+                y += 2000
+        if not (1 <= mo <= 12 and 1 <= d <= 31):
+            return None
+        return datetime.date(y, mo, d)
+    except (ValueError, TypeError):
+        return None
+
+
+def _date_text_repl(m):
+    dt = _parse_numeric_date(m.group(0))
+    return f"{dt.day:02d} {_MONTHS[dt.month - 1]} {dt.year}" if dt else m.group(0)
+
+
+def _date_table_repl(m):
+    dt = _parse_numeric_date(m.group(0))
+    return f"{dt.day:02d}-{_MONTHS[dt.month - 1][:3]}-{dt.year}" if dt else m.group(0)
+
+
+def check_date_format(doc, rule, table=False):
+    """Numeric dates are ambiguous (01/02 = 1 Feb or 2 Jan), so never rewrite
+    them silently. When the rule auto-fixes, propose the reformatted date (UK
+    day-first) as a tracked change for the reviewer to accept or reject;
+    otherwise just flag it."""
+    repl = _date_table_repl if table else _date_text_repl
+    fmt = ("DD-MMM-YYYY in tables (e.g. 28-Feb-2020)" if table
+           else "DD MONTH YYYY (e.g. 01 February 2015)")
+    label = f"numeric date — use {fmt}"
+    if rule.get('auto_fix'):
+        n = sum(_tracked_replace_in_run(run, _NUMERIC_DATE, repl)
+                for _i, run in _iter_runs(doc))
+        fixes = ([f"Proposed {n} date reformat(s) as tracked changes to accept or reject: {label}"]
+                 if n else [])
+        return {'issues': [], 'fixes': fixes, 'changes': []}
+    return _flag_regex(doc, _NUMERIC_DATE, label)
+
+
 # check_value -> handler. Detection-only handlers use _flag_regex; a couple
 # auto-fix where the live rule sets AutoFix and the correction is unambiguous.
 _LANGUAGE_CHECKS = {
@@ -973,8 +1029,8 @@ _LANGUAGE_CHECKS = {
 }
 _PUNCTUATION_CHECKS = {
     'TimeFormat': lambda d, r: _flag_regex(d, _TIME_12H, "12-hour clock time — use 24-hour HH:MM (e.g. 09:00, 18:25)"),
-    'DateFormat_Text': lambda d, r: _flag_regex(d, _NUMERIC_DATE, "numeric date — use DD MONTH YYYY (e.g. 01 February 2015)"),
-    'DateFormat_Table': lambda d, r: _flag_regex(d, _NUMERIC_DATE, "numeric date — use DD-MMM-YYYY in tables (e.g. 28-Feb-2020)"),
+    'DateFormat_Text': lambda d, r: check_date_format(d, r, table=False),
+    'DateFormat_Table': lambda d, r: check_date_format(d, r, table=True),
     'YearIntervalFormat': lambda d, r: _flag_regex(d, _YEAR_RANGE, "year range — use YYYY-YY (e.g. 2019-20)"),
     'NoSpacesAroundSlash': lambda d, r: _replace_regex(d, r, _SLASH_SPACED, '/', "spaces around '/' — close up (e.g. km/s)"),
     'AvoidForwardSlash': lambda d, r: _flag_regex(d, _SLASH_WORDS, "forward slash between words — use words to avoid ambiguity"),
