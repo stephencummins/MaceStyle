@@ -186,17 +186,24 @@ def get_health_status() -> dict:
         "missing_vars": missing,
     }
 
-    # Check Claude API key (direct Anthropic or Microsoft Foundry, per AI_PROVIDER)
+    # Check the AI backend's credentials for the active AI_PROVIDER
+    # (anthropic = direct Claude, foundry = Claude in Microsoft Foundry,
+    #  azure_openai = GPT via Azure OpenAI). Each provider needs different vars.
     provider = os.environ.get("AI_PROVIDER", "anthropic")
     if provider == "foundry":
-        has_claude = bool(os.environ.get("FOUNDRY_RESOURCE") and os.environ.get("FOUNDRY_API_KEY"))
+        has_key = bool(os.environ.get("FOUNDRY_RESOURCE") and os.environ.get("FOUNDRY_API_KEY"))
         missing_msg = "FOUNDRY_RESOURCE/FOUNDRY_API_KEY not set — AI validation disabled"
+    elif provider == "azure_openai":
+        # AZURE_OPENAI_API_KEY falls back to FOUNDRY_API_KEY in config (shared resource key)
+        has_key = bool(os.environ.get("AZURE_OPENAI_ENDPOINT")
+                       and (os.environ.get("AZURE_OPENAI_API_KEY") or os.environ.get("FOUNDRY_API_KEY")))
+        missing_msg = "AZURE_OPENAI_ENDPOINT/AZURE_OPENAI_API_KEY not set — AI validation disabled"
     else:
-        has_claude = bool(os.environ.get("ANTHROPIC_API_KEY"))
+        has_key = bool(os.environ.get("ANTHROPIC_API_KEY"))
         missing_msg = "ANTHROPIC_API_KEY not set — AI validation disabled"
     health["checks"]["claude_api"] = {
-        "status": "healthy" if has_claude else "degraded",
-        "detail": f"API key configured ({provider})" if has_claude else missing_msg,
+        "status": "healthy" if has_key else "degraded",
+        "detail": f"API key configured ({provider})" if has_key else missing_msg,
     }
 
     # Check access control
