@@ -119,15 +119,15 @@
   <p class="subtitle">Running our Style Guide validator on Mace's own billing and governance</p>
   <div class="meta">
     <span>Prepared for <strong>Tobias</strong> by Stephen Cummins · AI Service Lead, Mace Digital</span>
-    <span>2 July 2026</span>
+    <span>2 July 2026 · updated 5 July 2026</span>
   </div>
 
   <div class="lead">
     MaceStyle — the automated Style Guide validator already piloting on the Mace Way Control Centre —
-    can run entirely on <strong>Mace's own Azure billing and governance</strong>, at
-    <strong>pennies per document</strong>, with <strong>zero code changes</strong>. I've already proven
-    the switch end-to-end. It needs a Mace Azure subscription to own it and a data-governance nod.
-    Then it's roughly half a day to cut over.
+    now runs its AI on <strong>GPT via Azure OpenAI</strong>: <strong>Microsoft-native</strong>, on Azure
+    billing and governance, at <strong>pennies per document</strong>. I've already made the switch and
+    proven it end-to-end on the live pilot. To make it a Mace service it needs a Mace Azure subscription
+    to own it and a data-governance nod. Then it's roughly half a day to cut over.
   </div>
 
   <h2>What we have today</h2>
@@ -135,37 +135,52 @@
     MaceStyle reads documents in the Mace Way Control Centre and checks them against the Writing Style
     Guide — British spelling, contractions, symbols, number and font standards — flagging issues and
     proposing corrections. It is <strong>live in pilot</strong>, validated by testers (Natasha, Jade) in
-    June. The intelligent rules are powered by Claude, which handles the judgement calls a simple
-    find-and-replace can't.
+    June. The intelligent rules — the judgement calls a simple find-and-replace can't make — are powered
+    by AI.
   </p>
   <p>
-    <strong>The catch:</strong> the AI currently runs on <em>my personal</em> Anthropic account and Azure
-    subscription. That proves the concept — it's not how Mace should run a service it depends on. To make
-    this a Mace service, the billing and governance need to sit inside Mace.
+    <strong>What changed this month:</strong> I re-architected MaceStyle so the AI backend is
+    <em>swappable</em> via a single setting, and switched the live pilot onto
+    <strong>GPT-5 (Azure OpenAI)</strong> — Microsoft's own AI service, running inside Azure. It's proven
+    working end-to-end. The same code can run Claude instead with no rewrite, so we are not locked to one
+    model.
+  </p>
+  <p>
+    <strong>The catch:</strong> it currently runs on <em>my personal</em> Azure subscription. That proves
+    the concept — it's not how Mace should run a service it depends on. To make this a Mace service, the
+    billing and governance need to sit inside Mace.
   </p>
 
-  <h2>The proposal: run it on Mace's Azure, via Microsoft Foundry</h2>
+  <h2>The proposal: run it on Mace's Azure — Microsoft-native</h2>
   <p>
-    Microsoft Foundry now offers Claude directly inside Azure. That changes the commercial picture
-    entirely:
+    Mace's instinct is to stay on Microsoft wherever possible. This fits that exactly. The AI now runs on
+    <strong>Azure OpenAI</strong> — the GPT models (the ChatGPT family) delivered as a first-party
+    Microsoft Azure service:
   </p>
   <table class="propose">
-    <thead><tr><th></th><th>Today (my accounts)</th><th>Proposed (Mace)</th></tr></thead>
+    <thead><tr><th></th><th>Today (my Azure)</th><th>Proposed (Mace's Azure)</th></tr></thead>
     <tbody>
       <tr><td><strong>Who pays</strong></td><td>Me, personally</td><td><strong>Mace's existing Azure invoice</strong></td></tr>
-      <tr><td><strong>How</strong></td><td>Separate Anthropic account</td><td>Azure Marketplace — a line on the bill we already pay</td></tr>
-      <tr><td><strong>Governance</strong></td><td>None to speak of</td><td><strong>Entra ID, RBAC, data zone, spend caps</strong></td></tr>
-      <tr><td><strong>Procurement</strong></td><td>—</td><td><strong>None.</strong> No new vendor, no new contract</td></tr>
+      <tr><td><strong>What it is</strong></td><td>GPT via Azure OpenAI</td><td>Same — a native Azure service Mace already has</td></tr>
+      <tr><td><strong>Governance</strong></td><td>Mine</td><td><strong>Entra ID, RBAC, data zone, spend caps</strong></td></tr>
+      <tr><td><strong>Procurement</strong></td><td>—</td><td><strong>None.</strong> No new vendor, no third-party sign-up</td></tr>
     </tbody>
   </table>
   <p>
-    The key point: <strong>no new supplier to onboard and no separate AI contract to negotiate.</strong>
-    Claude usage simply appears as consumption on the Azure agreement Mace already has. Microsoft handles
-    billing and governance; Anthropic operates the model.
+    The key point: <strong>there is no new supplier and no AI contract to negotiate.</strong>
+    Azure OpenAI is Microsoft, on the Azure agreement Mace already runs. Standing it up in a Mace
+    subscription is deploying a model and pointing the app at it — no marketplace step, no external account.
+  </p>
+  <p>
+    <strong style="color:var(--purple)">Model choice stays open.</strong> Because the backend is swappable,
+    Mace can run <strong>Claude</strong> instead (via Microsoft Foundry, also inside Azure) for content that
+    benefits from its slightly more careful editing — a one-setting change, not a rebuild. My recommendation:
+    <strong>default to GPT / Azure OpenAI</strong> (easiest to provision and the cheaper of the two) and keep
+    Claude available as an option.
   </p>
 
   <div class="diagram">
-    <svg viewBox="0 0 720 128" role="img" aria-label="Mace Azure to Foundry to Claude flow">
+    <svg viewBox="0 0 720 128" role="img" aria-label="Mace Azure to Azure OpenAI to GPT flow">
       <defs>
         <marker id="arw" markerWidth="9" markerHeight="9" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
           <path d="M0,0 L6,3 L0,6 Z" fill="#00929F"></path>
@@ -180,45 +195,58 @@
       <text x="296" y="54" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#0a5a63">MaceStyle</text>
       <text x="296" y="70" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="#5b5850">Azure Function</text>
       <text x="296" y="84" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#5b5850">(validates docs)</text>
-      <!-- Foundry -->
+      <!-- Azure OpenAI -->
       <rect x="420" y="30" width="168" height="68" rx="7" fill="#f7eef8" stroke="#892B90" stroke-width="1.5"></rect>
-      <text x="504" y="54" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#892B90">Microsoft Foundry</text>
+      <text x="504" y="54" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#892B90">Azure OpenAI</text>
       <text x="504" y="70" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="#5b5850">billing + governance</text>
       <text x="504" y="84" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#5b5850">(Entra ID · RBAC)</text>
-      <!-- Claude -->
+      <!-- GPT -->
       <rect x="628" y="30" width="88" height="68" rx="7" fill="#fff6e6" stroke="#F68427" stroke-width="1.5"></rect>
-      <text x="672" y="60" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#c85f10">Claude</text>
-      <text x="672" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#5b5850">Anthropic</text>
+      <text x="672" y="60" text-anchor="middle" font-family="Inter,sans-serif" font-size="12" font-weight="600" fill="#c85f10">GPT-5</text>
+      <text x="672" y="76" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#5b5850">Microsoft</text>
       <!-- arrows -->
       <line x1="172" y1="64" x2="208" y2="64" stroke="#00929F" stroke-width="2" marker-end="url(#arw)"></line>
       <line x1="380" y1="64" x2="416" y2="64" stroke="#00929F" stroke-width="2" marker-end="url(#arw)"></line>
       <line x1="588" y1="64" x2="624" y2="64" stroke="#00929F" stroke-width="2" marker-end="url(#arw)"></line>
-      <text x="360" y="18" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" fill="#5b5850">All billing stays inside Mace's Azure agreement — no separate Anthropic contract</text>
+      <text x="360" y="18" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" fill="#5b5850">Everything stays inside Mace's Azure agreement — a first-party Microsoft service</text>
     </svg>
-    <p class="figcap">How MaceStyle runs under Mace: the Function calls Claude via Foundry, and usage bills to Mace's Azure invoice.</p>
+    <p class="figcap">How MaceStyle runs under Mace: the Function calls GPT via Azure OpenAI, all inside Mace's Azure. Claude (via Foundry) is a one-setting alternative.</p>
   </div>
 
   <h2>What it costs</h2>
   <p>
-    Consumption-based, and genuinely cheap at this scale. A document validation is a few thousand tokens
-    of AI — <strong>fractions of a penny to a couple of pence per document</strong>. Even at hundreds of
-    documents a day, this is a rounding error against the value of consistent, on-brand documentation
-    across the Control Centre. No upfront commitment; Mace pays only for what it uses.
+    Consumption-based and genuinely cheap. I measured both models on real documents through the live
+    pipeline:
+  </p>
+  <table class="propose">
+    <thead><tr><th>Document size</th><th>GPT-5-mini (recommended)</th><th>Claude (alternative)</th></tr></thead>
+    <tbody>
+      <tr><td><strong>~1 page</strong></td><td><strong>£0.003</strong></td><td>£0.004</td></tr>
+      <tr><td><strong>~3 pages</strong></td><td><strong>£0.004</strong></td><td>£0.008</td></tr>
+      <tr><td><strong>~8 pages</strong></td><td><strong>£0.008</strong></td><td>£0.015</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:8pt;color:var(--mute);margin-top:-6px">US-dollar list prices, converted approximately; Mace's enterprise Azure agreement would likely discount further.</p>
+  <p>
+    GPT is <strong>~35–50% cheaper per document</strong> than Claude, and the gap widens with length — but
+    in absolute terms both are a <strong>rounding error</strong>: realistic Control Centre volume is a few
+    pounds a month. No upfront commitment; Mace pays only for what it uses. Cost isn't the deciding factor —
+    ease of ownership is, and Azure OpenAI wins on both.
   </p>
 
   <h2>What I need from you</h2>
   <ol>
     <li><strong>A home for it</strong> — nominate a Mace Azure subscription and cost centre to own the service. Mace already runs on Azure (the <em>mace365</em> tenant, Power Platform), so nothing new is stood up.</li>
-    <li><strong>A governance nod</strong> — document text is processed by a US-hosted model. Foundry's US data zone and Azure governance are built for exactly this; it needs Sapna's sign-off, which I'll tee up.</li>
-    <li><strong>Half a day of my time</strong> to cut over — I've already rehearsed the entire handover in a test environment, so this is execution, not discovery.</li>
+    <li><strong>A governance nod</strong> — document text is processed by a US-hosted model. Azure OpenAI's data zone and Azure-native governance are built for exactly this; it needs Sapna's sign-off, which I'll tee up.</li>
+    <li><strong>Half a day of my time</strong> to cut over — I've already built and proven the whole path on the live pilot, so this is execution, not discovery.</li>
   </ol>
 
   <div class="close">
     <h2>Why this matters beyond MaceStyle</h2>
     <p>
       MaceStyle is the <strong>proof, not the point.</strong> It shows a repeatable pattern: identify a
-      real Mace problem, stand up an AI service to solve it, and hand it over running on Mace's own billing
-      and governance — safely, cheaply, and without a procurement cycle.
+      real Mace problem, stand up an AI service to solve it, and hand it over running on Mace's own
+      Microsoft/Azure billing and governance — safely, cheaply, and without a procurement cycle.
     </p>
     <p>
       That pattern is the AI Service Lead role in practice. Give me the mandate and MaceStyle becomes the
@@ -228,7 +256,8 @@
   </div>
 
   <p class="foot">
-    Technical detail for whoever provisions it: see the companion <em>Foundry Handover Runbook</em>.
+    Technical detail for whoever provisions it: see the companion <em>Handover Runbook</em> (covers both
+    the Azure OpenAI / GPT and Foundry / Claude setups).
     &nbsp;·&nbsp; Stephen Cummins · AI Service Lead, Mace Digital · stephen.cummins@macegroup.com
   </p>
 
