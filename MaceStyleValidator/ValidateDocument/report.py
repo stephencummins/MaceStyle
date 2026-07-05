@@ -13,6 +13,14 @@ def _escape_html(text):
     return str(text).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;')
 
 
+def _rule_type_badge(rule_type):
+    """Render a rule-type badge; AI-produced rows get a distinct highlighted badge."""
+    rt = _escape_html(rule_type)
+    if (rule_type or '').strip().upper() == 'AI':
+        return f'<span class="rule-type-badge ai">&#10022; {rt}</span>'
+    return f'<span class="rule-type-badge">{rt}</span>'
+
+
 def generate_report(file_name, issues, fixes_applied, document_url=None, library_url=None):
     """Generate validation report as HTML with Mace branding.
 
@@ -27,6 +35,14 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
     remaining_count = len(remaining_issues)
     fixes_count = len(fixes_applied)
     total_issues_found = remaining_count + fixes_count
+
+    # AI contribution: fixes produced by the Claude AI pass carry rule_type == 'AI'.
+    # Count the individual before/after edits so we can showcase what AI did.
+    ai_fixes = [f for f in fixes_applied
+                if isinstance(f, dict) and f.get('rule_type') == 'AI']
+    # Prefer Claude's own count of individual corrections; fall back to paragraph edits.
+    ai_change_count = sum(f.get('changes_made', len(f.get('changes', []))) for f in ai_fixes)
+    ai_active = bool(ai_fixes)
 
     if remaining_count == 0:
         status = "Passed"
@@ -72,7 +88,7 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
         if isinstance(fix, dict):
             fixes_rows += f"""<tr>
                 <td>{_escape_html(fix.get('rule_name', ''))}</td>
-                <td><span class="rule-type-badge">{_escape_html(fix.get('rule_type', ''))}</span></td>
+                <td>{_rule_type_badge(fix.get('rule_type', ''))}</td>
                 <td>{_escape_html(fix.get('found_value', ''))}</td>
                 <td>{_escape_html(fix.get('fixed_value', ''))}</td>
                 <td>{_escape_html(fix.get('location', ''))}</td>
@@ -90,7 +106,7 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
         priority_color = '#dc3545' if priority <= 3 else ('#f0ad4e' if priority <= 6 else '#6c757d')
         issues_rows += f"""<tr>
             <td>{_escape_html(issue.get('rule_name', ''))}</td>
-            <td><span class="rule-type-badge">{_escape_html(issue.get('rule_type', ''))}</span></td>
+            <td>{_rule_type_badge(issue.get('rule_type', ''))}</td>
             <td>{_escape_html(issue.get('description', ''))}</td>
             <td>{_escape_html(issue.get('location', ''))}</td>
             <td><span style="color:{priority_color};font-weight:bold;">{priority_label}</span></td>
@@ -158,6 +174,22 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
         </div>"""
     else:
         no_issues_section = ''
+
+    # AI showcase elements (only shown when the Claude AI pass produced corrections)
+    if ai_active:
+        ai_banner_html = (
+            f'<div class="ai-banner"><span class="spark">&#10022; AI-assisted:</span> '
+            f'{ai_change_count} language correction{"s" if ai_change_count != 1 else ""} '
+            f'applied by Claude AI &mdash; British spelling, contractions, plain-English '
+            f'simplification, tone and symbols.</div>'
+        )
+        ai_summary_card = f"""<div class="summary-card ai-card">
+                <div class="number">{ai_change_count}</div>
+                <div class="label">&#10022; AI Corrections</div>
+            </div>"""
+    else:
+        ai_banner_html = ''
+        ai_summary_card = ''
 
     report_html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -319,6 +351,30 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
             font-size: 11px;
             font-weight: 600;
         }}
+        .rule-type-badge.ai {{
+            background: linear-gradient(90deg, #00929F 0%, #892B90 100%);
+            color: #fff;
+            letter-spacing: 0.3px;
+        }}
+        .ai-banner {{
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.14);
+            border-left: 3px solid #90D2C5;
+            border-radius: 4px;
+            font-size: 13px;
+        }}
+        .ai-banner .spark {{ color: #FDB924; font-weight: 700; }}
+        .summary-card.ai-card {{
+            border-left-color: #00929F;
+            background: linear-gradient(180deg, #f2fbfc 0%, #f4f6f9 100%);
+        }}
+        .summary-card.ai-card .number {{
+            background: linear-gradient(90deg, #00929F 0%, #892B90 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }}
         .diff-before {{ background: #ffeef0; text-decoration: line-through; color: #b31d28; padding: 2px 4px; }}
         .diff-after {{ background: #e6ffec; color: #22863a; padding: 2px 4px; }}
         details {{ margin-bottom: 8px; }}
@@ -346,6 +402,7 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
             {library_line}
             <div><strong>Validated:</strong> {validation_time}</div>
         </div>
+        {ai_banner_html}
     </div>
 
     <div class="summary">
@@ -359,6 +416,7 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
                 <div class="number">{len(fixes_applied)}</div>
                 <div class="label">Auto-Fixed</div>
             </div>
+            {ai_summary_card}
             <div class="summary-card" style="border-left-color: {'#f0ad4e' if remaining_count > 0 and fixes_count > 0 else '#dc3545' if remaining_count > 0 else '#28a745'};">
                 <div class="number" style="color: {'#f0ad4e' if remaining_count > 0 and fixes_count > 0 else '#dc3545' if remaining_count > 0 else '#28a745'};">{remaining_count}</div>
                 <div class="label">Remaining</div>

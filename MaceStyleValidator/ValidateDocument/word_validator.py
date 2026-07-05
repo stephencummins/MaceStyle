@@ -86,7 +86,8 @@ def validate_word_document(file_stream, rules):
                         'rule_type': 'AI',
                         'found_value': f'{result["changes_made"]} style violations',
                         'fixed_value': 'British English, contractions, symbols corrected',
-                        'location': 'Document-wide'
+                        'location': 'Document-wide',
+                        'changes_made': result['changes_made']
                     }
                     if ai_changes:
                         ai_fix['changes'] = ai_changes
