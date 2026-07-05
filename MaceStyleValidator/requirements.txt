@@ -9,6 +9,7 @@ vsdx==0.5.8
 msal==1.31.1
 requests==2.32.3
 anthropic==0.103.1
+openai==2.44.0  # AI_PROVIDER=azure_openai (Azure OpenAI GPT backend); >=1.55.3 avoids the httpx 'proxies' clash
 openpyxl==3.1.5
 botbuilder-core>=4.16.0
 botbuilder-integration-aiohttp>=4.16.0

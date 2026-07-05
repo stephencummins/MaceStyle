@@ -6,12 +6,26 @@ import requests
 # Claude AI configuration
 # Toggle AI validation via the ENABLE_CLAUDE_AI app setting ("true"/"false"). Default off.
 ENABLE_CLAUDE_AI = os.environ.get("ENABLE_CLAUDE_AI", "false").lower() == "true"
-# AI_PROVIDER selects where Claude is hosted:
-#   "anthropic" - direct Anthropic API (ANTHROPIC_API_KEY) - current setup
-#   "foundry"   - Claude in Microsoft Foundry (FOUNDRY_RESOURCE + FOUNDRY_API_KEY) - Mace target state.
-#                 CLAUDE_MODEL must then match the Foundry deployment name (e.g. "claude-haiku-4-5").
+# AI_PROVIDER selects which model backend serves the AI rules:
+#   "anthropic"    - direct Anthropic API (ANTHROPIC_API_KEY) - current setup
+#   "foundry"      - Claude in Microsoft Foundry (FOUNDRY_RESOURCE + FOUNDRY_API_KEY) - Mace target state.
+#                    CLAUDE_MODEL must then match the Foundry deployment name (e.g. "claude-haiku-4-5").
+#   "azure_openai" - Azure OpenAI GPT model on an Azure AI Foundry resource (AZURE_OPENAI_ENDPOINT +
+#                    AZURE_OPENAI_API_KEY). Easiest for Mace to provision (Microsoft-native, no
+#                    Anthropic Marketplace step). CLAUDE_MODEL must then be the GPT deployment name
+#                    (e.g. "gpt-5-mini").
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "anthropic")
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-haiku-4-5-20251001")
+
+# Azure OpenAI settings (only used when AI_PROVIDER=azure_openai). The key defaults to the
+# shared Foundry resource key since GPT and Claude can co-live on one AIServices resource.
+AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY") or os.environ.get("FOUNDRY_API_KEY")
+AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
+# GPT-5 reasoning models spend tokens on hidden reasoning before output, so the completion cap
+# needs headroom above the visible answer. "low" keeps latency/cost sane for an editing task.
+AZURE_OPENAI_MAX_COMPLETION_TOKENS = int(os.environ.get("AZURE_OPENAI_MAX_COMPLETION_TOKENS", "16000"))
+AZURE_OPENAI_REASONING_EFFORT = os.environ.get("AZURE_OPENAI_REASONING_EFFORT", "low")
 
 # SharePoint write ownership.
 # When False (default), the Power Automate flow owns ALL SharePoint writes
