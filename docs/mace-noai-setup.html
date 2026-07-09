@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MaceStyle — Mace Azure Setup (No-AI Production)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#130B01;--teal:#00929F;--purple:#892B90;--orange:#F68427;--gold:#FDB924;--mute:#5b5850;--line:#e6e3dc;--wash:#f6f8f8;}
+  *{box-sizing:border-box;} html,body{margin:0;padding:0;}
+  body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);font-size:10.5pt;line-height:1.5;background:#eceae4;}
+  .page{max-width:780px;margin:24px auto;background:#fff;padding:44px 52px 38px;box-shadow:0 2px 24px rgba(0,0,0,.08);}
+  .kicker{font-size:8.5pt;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);font-weight:600;margin:0 0 6px;}
+  h1{font-family:'Fraunces',Georgia,serif;font-weight:900;font-size:26pt;line-height:1.05;margin:0 0 4px;letter-spacing:-.01em;}
+  .subtitle{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:400;font-size:13pt;color:var(--purple);margin:0 0 14px;}
+  .meta{font-size:8.5pt;color:var(--mute);border-top:2px solid var(--ink);border-bottom:1px solid var(--line);padding:8px 0;margin:0 0 20px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+  h2{font-family:'Fraunces',Georgia,serif;font-weight:600;font-size:14pt;margin:22px 0 8px;display:flex;align-items:center;gap:9px;}
+  h2::before{content:"";width:7px;height:19px;border-radius:2px;background:var(--teal);display:inline-block;}
+  p{margin:0 0 10px;}
+  .lead{background:var(--wash);border-left:4px solid var(--gold);padding:13px 18px;margin:0 0 10px;font-size:10.5pt;}
+  .lead strong{color:var(--purple);}
+  .box{border:1px solid var(--line);border-radius:6px;padding:12px 16px;margin:0 0 14px;background:#fbfcfc;}
+  .box h3{margin:0 0 6px;font-size:9pt;text-transform:uppercase;letter-spacing:.06em;color:var(--teal);}
+  .box ul{margin:0;padding-left:18px;} .box li{margin:3px 0;}
+  ol{margin:6px 0 12px;padding-left:20px;} ol>li{margin:0 0 10px;}
+  ol>li strong{color:var(--ink);}
+  code{background:#f2f3f4;border-radius:3px;padding:1px 5px;font-family:ui-monospace,Menlo,monospace;font-size:9pt;}
+  .who{display:inline-block;font-size:7.5pt;font-weight:600;color:#fff;background:var(--purple);border-radius:10px;padding:2px 9px;margin-left:6px;vertical-align:middle;text-transform:uppercase;letter-spacing:.04em;}
+  .who.me{background:var(--teal);}
+  table{width:100%;border-collapse:collapse;margin:4px 0 12px;font-size:9pt;}
+  th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top;}
+  thead th{background:var(--ink);color:#fff;font-weight:600;font-size:8pt;letter-spacing:.04em;text-transform:uppercase;}
+  tbody tr:nth-child(even){background:var(--wash);}
+  td code{font-size:8.5pt;}
+  .foot{font-size:8pt;color:var(--mute);margin-top:16px;border-top:1px solid var(--line);padding-top:8px;}
+  @page{size:A4;margin:13mm;}
+  @media print{body{background:#fff;}.page{box-shadow:none;margin:0;max-width:none;padding:0;}h2,table,.box,ol>li{break-inside:avoid;}*{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style>
+</head>
+<body>
+<div class="page">
+  <p class="kicker">Mace Azure Setup Guide</p>
+  <h1>MaceStyle: No-AI Production</h1>
+  <p class="subtitle">The Mace-side steps to stand up the Function and let me deploy it</p>
+  <div class="meta">
+    <span>For the Mace Azure / Digital team, from <strong>Stephen Cummins</strong> · AI Service Lead, Mace Digital</span>
+    <span>8 July 2026</span>
+  </div>
+
+  <div class="lead">
+    MaceStyle can go to production <strong>this sprint</strong>, running entirely inside Mace's Azure and
+    Microsoft 365. In this mode the AI rules are switched <strong>off</strong>, so no document text leaves
+    Mace — <strong>no external data, no governance wait.</strong> It enforces the deterministic core of the
+    Style Guide (British spelling, contractions, symbols, numbers, fonts, colours). AI-powered judgement
+    rules layer on later with zero rework — same codebase, one setting. This sheet covers the three things
+    <strong>Mace needs to do</strong> so I can deploy and finish the wiring.
+  </div>
+
+  <div class="box">
+    <h3>Prerequisites</h3>
+    <ul>
+      <li>A <strong>Mace Azure subscription + resource group</strong> (UK South) to own the service.</li>
+      <li>Someone with <strong>Owner/Contributor on that resource group</strong> to run Steps 2–3, and <strong>access to the app registration</strong> (Step 1).</li>
+      <li>No AI resource, no Marketplace step, no US data zone — this mode needs none of it.</li>
+    </ul>
+  </div>
+
+  <h2>Step 1 — Reuse the existing app registration <span class="who">Mace</span></h2>
+  <p>
+    MaceStyle authenticates to SharePoint with an app registration that <strong>already exists on the Mace
+    tenant</strong> and already has the right permission granted. Do not create a new one — just confirm and
+    supply a secret:
+  </p>
+  <table>
+    <tbody>
+      <tr><td><strong>App registration</strong></td><td><code>MaceStyleValidator-App</code></td></tr>
+      <tr><td><strong>Tenant ID</strong></td><td><code>f9300280-…</code> (Mace)</td></tr>
+      <tr><td><strong>Client (application) ID</strong></td><td><code>b1b09e94-…</code></td></tr>
+      <tr><td><strong>Permission</strong></td><td>Graph <code>Sites.Selected</code> — <code>fullcontrol</code> on the MaceWayControlCentre site (granted by Sapna Gupta)</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <strong>To do:</strong> (a) confirm the <code>Sites.Selected</code> grant on MaceWayControlCentre is still
+    in place; (b) provide a <strong>valid client secret</strong> — the current one expires 31 May 2028, or
+    generate a fresh one. <strong>Send the secret to me via a secure channel</strong> (or, preferred, drop it
+    straight into the Function App settings / Key Vault in Step 2 so I never handle the raw value).
+  </p>
+
+  <h2>Step 2 — Create the Function App <span class="who">Mace</span></h2>
+  <p>Create an Azure Function App in the Mace resource group with these settings:</p>
+  <table>
+    <tbody>
+      <tr><td><strong>Type</strong></td><td>Function App — <strong>Flex Consumption</strong> plan</td></tr>
+      <tr><td><strong>Runtime</strong></td><td><strong>Python 3.11</strong>, Linux</td></tr>
+      <tr><td><strong>Region</strong></td><td>UK South</td></tr>
+      <tr><td><strong>Name</strong></td><td>e.g. <code>func-macestyle-prod</code> (Mace convention)</td></tr>
+    </tbody>
+  </table>
+  <p>A storage account is created automatically. Nothing else is needed at creation time — I set the app
+     configuration as part of the deploy.</p>
+
+  <h2>Step 3 — Give me deploy access <span class="who">Mace</span></h2>
+  <p>
+    Grant my Mace account (<code>stephen.cummins@macegroup.com</code>) an RBAC role on the Function App (or the
+    resource group) so I can deploy the code and set its configuration from VS Code:
+  </p>
+  <table>
+    <tbody>
+      <tr><td><strong>Role</strong></td><td><strong>Contributor</strong> on the Function App (or <em>Website Contributor</em> if you prefer least-privilege)</td></tr>
+      <tr><td><strong>Scope</strong></td><td>The Function App from Step 2 (or its resource group)</td></tr>
+      <tr><td><strong>Assignee</strong></td><td><code>stephen.cummins@macegroup.com</code></td></tr>
+    </tbody>
+  </table>
+
+  <div class="box">
+    <h3>Hand me these three things</h3>
+    <ul>
+      <li>Subscription ID + resource group name + the Function App name/region (Step 2)</li>
+      <li>Confirmation my account has the deploy role (Step 3)</li>
+      <li>The app-registration client secret — securely, or pre-loaded into app settings (Step 1)</li>
+    </ul>
+  </div>
+
+  <h2>What I do next <span class="who me">Me</span></h2>
+  <p>Once the above is in place, no further Mace admin effort is needed. I will:</p>
+  <ol>
+    <li><strong>Deploy the code</strong> to the Function App from VS Code.</li>
+    <li><strong>Set the app settings</strong> — the SharePoint credentials + list IDs, plus
+        <code>ENABLE_CLAUDE_AI=false</code> (the switch that keeps it AI-free) and the endpoint access key. <em>No AI variables are set in this mode.</em></li>
+    <li><strong>Re-point the existing Power Automate flow</strong> ("Mace Document Style Validator") at the new Function URL.</li>
+    <li><strong>Verify</strong> end-to-end on a test document and confirm the deterministic corrections apply.</li>
+  </ol>
+
+  <p class="foot">
+    Companion technical detail (incl. the later AI-enabled path): <em>Handover Runbook</em>. &nbsp;·&nbsp;
+    Stephen Cummins · AI Service Lead, Mace Digital · stephen.cummins@macegroup.com
+  </p>
+</div>
+</body>
+</html>
