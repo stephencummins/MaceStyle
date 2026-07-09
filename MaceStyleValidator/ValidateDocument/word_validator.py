@@ -130,6 +130,13 @@ def validate_word_document(file_stream, rules):
     return {'document': doc, 'issues': issues, 'fixes_applied': fixes_applied}
 
 
+def _is_heading(paragraph):
+    """True if the paragraph uses a Heading style (Heading 1, Heading 2, ...)."""
+    style = getattr(paragraph, 'style', None)
+    name = getattr(style, 'name', None) or ''
+    return name.startswith('Heading')
+
+
 def _check_fonts(doc, rule):
     """Check and fix font issues in Word doc"""
     issues = []
@@ -141,6 +148,11 @@ def _check_fonts(doc, rule):
         fix_count = 0
 
         for paragraph in iter_all_paragraphs(doc):
+            # Headings follow the heading font rule (e.g. Arial Nova Cond Light),
+            # not the body font rule (Arial) — skip them so the body rule doesn't
+            # clobber heading fonts back to Arial.
+            if _is_heading(paragraph):
+                continue
             for run in paragraph.runs:
                 if run.text.strip():
                     if run.font.name is None or run.font.name != expected_font:
@@ -167,25 +179,28 @@ def _check_fonts(doc, rule):
             })
 
     elif rule['check_value'] == 'Heading1Font':
+        # Applies the heading font to ALL heading levels (Heading 1, 2, 3, ...),
+        # so every heading is set to the expected face (e.g. Arial Nova Cond Light).
         for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
-            if paragraph.style.name == 'Heading 1':
+            if _is_heading(paragraph):
+                style_name = paragraph.style.name
                 current_font = paragraph.runs[0].font.name if paragraph.runs else None
                 if current_font is None or current_font != expected_font:
                     if rule['auto_fix']:
                         for run in paragraph.runs:
                             run.font.name = expected_font
                         fixes.append({
-                            'rule_name': rule.get('title', 'Heading 1 Font'),
+                            'rule_name': rule.get('title', 'Heading Font'),
                             'rule_type': rule['rule_type'],
                             'found_value': str(current_font),
                             'fixed_value': expected_font,
-                            'location': f'Paragraph {para_idx + 1} (Heading 1)'
+                            'location': f'Paragraph {para_idx + 1} ({style_name})'
                         })
                     else:
                         issues.append({
-                            'rule_name': rule.get('title', 'Heading 1 Font'),
+                            'rule_name': rule.get('title', 'Heading Font'),
                             'rule_type': rule['rule_type'],
-                            'description': f"Heading 1 has incorrect font: {current_font}",
+                            'description': f"{style_name} has incorrect font: {current_font}",
                             'location': f'Paragraph {para_idx + 1}',
                             'priority': rule.get('priority', 999)
                         })
