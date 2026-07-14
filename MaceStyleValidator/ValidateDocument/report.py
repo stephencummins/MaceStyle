@@ -58,6 +58,11 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
         status = "Failed"
         status_color = "#dc3545"
 
+    # The "Remaining" summary tile tracks the same three states as the status badge,
+    # so it reuses status_color rather than picking its own (previously it hardcoded
+    # green for zero-remaining, which contradicted the badge).
+    remaining_color = status_color
+
     validation_time = datetime.now(timezone.utc).strftime('%d %B %Y at %H:%M:%S UTC')
 
     # Source document back-link for the header (falls back to plain text)
@@ -76,15 +81,18 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
     else:
         library_line = ''
 
-    # Build description text
+    # Build description text. Nothing here may claim the document has "passed" or
+    # is "compliant" — the validator only ever reports what it checked and changed;
+    # sign-off is a human step (see the status logic above).
     if fixes_count > 0 and remaining_count == 0:
-        description = f"{fixes_count} issue{'s' if fixes_count != 1 else ''} found and auto-fixed. Document is compliant."
+        description = (f"{fixes_count} issue{'s' if fixes_count != 1 else ''} found and auto-fixed. "
+                       "No issues remain — please review the changes and confirm.")
     elif fixes_count > 0:
         description = f"{fixes_count} issue{'s' if fixes_count != 1 else ''} auto-fixed, {remaining_count} remaining for manual review."
     elif total_issues_found > 0:
         description = f"{total_issues_found} issue{'s' if total_issues_found != 1 else ''} found. Manual correction required."
     else:
-        description = "No issues found. Document fully complies with the Mace Writing Style Guide."
+        description = "No issues found against the Mace Writing Style Guide. Please review and confirm."
 
     # Build fixes table rows
     fixes_rows = ''
@@ -172,9 +180,10 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
         </div>"""
 
     if total_issues_found == 0:
-        no_issues_section = """<div class="section passed-section">
-            <h2>All Clear</h2>
-            <p>This document fully complies with the Mace Control Centre Writing Style Guide. No issues were found.</p>
+        no_issues_section = """<div class="section awaiting-review-section">
+            <h2>No Issues Found</h2>
+            <p>The validator found nothing to flag against the Mace Control Centre Writing Style
+            Guide. This is an automated check, not a sign-off &mdash; please review and confirm.</p>
         </div>"""
     else:
         no_issues_section = ''
@@ -302,14 +311,14 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
             padding-bottom: 8px;
             border-bottom: 2px solid #4a4a4a;
         }}
-        .passed-section {{
-            border-left: 4px solid #28a745;
+        .awaiting-review-section {{
+            border-left: 4px solid #17a2b8;
         }}
-        .passed-section h2 {{
-            color: #28a745;
-            border-bottom-color: #28a745;
+        .awaiting-review-section h2 {{
+            color: #17a2b8;
+            border-bottom-color: #17a2b8;
         }}
-        .passed-section p {{
+        .awaiting-review-section p {{
             color: #555;
             padding: 20px 0;
             text-align: center;
@@ -421,8 +430,8 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
                 <div class="label">Auto-Fixed</div>
             </div>
             {ai_summary_card}
-            <div class="summary-card" style="border-left-color: {'#f0ad4e' if remaining_count > 0 and fixes_count > 0 else '#dc3545' if remaining_count > 0 else '#28a745'};">
-                <div class="number" style="color: {'#f0ad4e' if remaining_count > 0 and fixes_count > 0 else '#dc3545' if remaining_count > 0 else '#28a745'};">{remaining_count}</div>
+            <div class="summary-card" style="border-left-color: {remaining_color};">
+                <div class="number" style="color: {remaining_color};">{remaining_count}</div>
                 <div class="label">Remaining</div>
             </div>
         </div>
