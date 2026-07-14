@@ -99,30 +99,30 @@ def mock_rules():
 def test_status_logic():
     """Test the three-way status calculation"""
     print("=" * 60)
-    print("TEST: Status logic (Passed / Review Required / Failed)")
+    print("TEST: Status logic (Validate Now / Review Required / Failed)")
     print("=" * 60)
 
     # Simulate: no issues at all -> Passed
     issues_none = []
     fixes_none = []
     remaining = [i for i in issues_none if isinstance(i, dict)]
-    status = "Passed" if len(remaining) == 0 else ("Review Required" if len(fixes_none) > 0 else "Failed")
-    assert status == "Passed", f"Expected Passed, got {status}"
+    status = "Validate Now" if len(remaining) == 0 else ("Review Required" if len(fixes_none) > 0 else "Failed")
+    assert status == "Validate Now", f"Expected Validate Now, got {status}"
     print(f"  [PASS] No issues -> {status}")
 
     # Simulate: issues all fixed -> Passed
     issues_fixed = []  # no remaining dict issues
     fixes_applied = [{'rule_name': 'Font', 'rule_type': 'Font', 'found_value': 'x', 'fixed_value': 'y', 'location': 'z'}]
     remaining = [i for i in issues_fixed if isinstance(i, dict)]
-    status = "Passed" if len(remaining) == 0 else ("Review Required" if len(fixes_applied) > 0 else "Failed")
-    assert status == "Passed", f"Expected Passed, got {status}"
+    status = "Validate Now" if len(remaining) == 0 else ("Review Required" if len(fixes_applied) > 0 else "Failed")
+    assert status == "Validate Now", f"Expected Validate Now, got {status}"
     print(f"  [PASS] All fixed, no remaining -> {status}")
 
     # Simulate: some fixed, some remaining -> Review Required
     issues_mixed = [{'rule_name': 'AI', 'rule_type': 'AI', 'description': 'x', 'location': 'y', 'priority': 3}]
     fixes_some = [{'rule_name': 'Font', 'rule_type': 'Font', 'found_value': 'x', 'fixed_value': 'y', 'location': 'z'}]
     remaining = [i for i in issues_mixed if isinstance(i, dict)]
-    status = "Passed" if len(remaining) == 0 else ("Review Required" if len(fixes_some) > 0 else "Failed")
+    status = "Validate Now" if len(remaining) == 0 else ("Review Required" if len(fixes_some) > 0 else "Failed")
     assert status == "Review Required", f"Expected Review Required, got {status}"
     print(f"  [PASS] Some fixed, some remaining -> {status}")
 
@@ -130,7 +130,7 @@ def test_status_logic():
     issues_only = [{'rule_name': 'Test', 'rule_type': 'Test', 'description': 'x', 'location': 'y', 'priority': 1}]
     fixes_zero = []
     remaining = [i for i in issues_only if isinstance(i, dict)]
-    status = "Passed" if len(remaining) == 0 else ("Review Required" if len(fixes_zero) > 0 else "Failed")
+    status = "Validate Now" if len(remaining) == 0 else ("Review Required" if len(fixes_zero) > 0 else "Failed")
     assert status == "Failed", f"Expected Failed, got {status}"
     print(f"  [PASS] Issues, no fixes -> {status}")
 
@@ -151,11 +151,11 @@ def test_report_generation():
 
     from ValidateDocument.report import generate_report
 
-    # Test Passed report
+    # Test Validate Now report (all fixed, no remaining issues — not "Passed": needs human confirmation)
     report = generate_report("test.docx", [], [{'rule_name': 'Font', 'rule_type': 'Font', 'found_value': 'x', 'fixed_value': 'y', 'location': 'z'}])
-    assert ">Passed<" in report or ">PASSED<" in report.upper(), "Passed not in report"
+    assert ">Validate Now<" in report, "Validate Now not in report"
     assert "auto-fixed" in report.lower(), "auto-fixed description missing"
-    print("  [PASS] Passed report with fixes")
+    print("  [PASS] Validate Now report with fixes")
 
     # Test Review Required report
     issues = [{'rule_name': 'AI', 'rule_type': 'AI', 'description': 'test', 'location': 'doc', 'priority': 3}]
@@ -174,9 +174,9 @@ def test_report_generation():
     assert "Manual correction" in report, "Manual correction description missing"
     print("  [PASS] Failed report")
 
-    # Test clean report
+    # Test clean report (no issues at all — still "Validate Now", not "Passed")
     report = generate_report("test.docx", [], [])
-    assert ">Passed<" in report or ">PASSED<" in report.upper(), "Passed not in clean report"
+    assert ">Validate Now<" in report, "Validate Now not in clean report"
     assert "No issues found" in report, "No issues description missing"
     print("  [PASS] Clean (no issues) report")
 

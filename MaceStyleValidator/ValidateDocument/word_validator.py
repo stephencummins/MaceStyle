@@ -2,6 +2,9 @@
 import logging
 from docx import Document
 from docx.shared import RGBColor
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
+from docx.opc.constants import RELATIONSHIP_TYPE as RT
 from .ai_client import call_claude
 from .enhanced_validators import (
     validate_language_rules,
@@ -137,6 +140,101 @@ def _is_heading(paragraph):
     return name.startswith('Heading')
 
 
+def _fix_heading_number_fonts(doc, heading_font, subheading_font):
+    """Auto-numbered headings (the "1.2.3" prefix Word generates from a
+    multilevel list) render from numbering.xml, not from the heading
+    paragraph's own runs — setting run.font.name never touches it, which is
+    why heading text can look right while its number stays Times New Roman.
+
+    Mace's template also leaves a stray w:cs="Times New Roman" override on
+    the "Normal" style; when a numbering level has no explicit font (the
+    common case — Word just says w:hint="default"), the number glyph falls
+    back through the style chain and can pick up that leftover font. Fix
+    both: the Normal style's residual font, and an explicit font override on
+    every numbering level actually used by a Heading style, so the fix holds
+    regardless of which fallback path Word takes.
+
+    Returns (normal_style_fixed: bool, numbering_levels_fixed: int).
+    """
+    normal_style_fixed = False
+    numbering_levels_fixed = 0
+
+    for style in doc.styles.element.findall(qn('w:style')):
+        if style.get(qn('w:styleId')) != 'Normal':
+            continue
+        rpr = style.find(qn('w:rPr'))
+        if rpr is None:
+            continue
+        rfonts = rpr.find(qn('w:rFonts'))
+        if rfonts is not None and rfonts.get(qn('w:cs')) == 'Times New Roman':
+            rfonts.set(qn('w:cs'), subheading_font)
+            normal_style_fixed = True
+
+    has_numbering_part = any(rel.reltype == RT.NUMBERING for rel in doc.part.rels.values())
+    if not has_numbering_part:
+        # No numbering.xml part at all — nothing to do. Checked via rels
+        # rather than doc.part.numbering_part, which lazily CREATES an empty
+        # numbering part on first access — we don't want to add one to every
+        # document that never had numbering.
+        return normal_style_fixed, numbering_levels_fixed
+    numbering_element = doc.part.numbering_part.element
+
+    num_to_abstract = {}
+    for num in numbering_element.findall(qn('w:num')):
+        abstract_ref = num.find(qn('w:abstractNumId'))
+        if abstract_ref is not None:
+            num_to_abstract[num.get(qn('w:numId'))] = abstract_ref.get(qn('w:val'))
+
+    # Which (abstractNumId, ilvl) pairs are actually used by which heading style?
+    used_levels = {}
+    for paragraph in iter_all_paragraphs(doc):
+        if not _is_heading(paragraph):
+            continue
+        p_pr = paragraph._p.find(qn('w:pPr'))
+        if p_pr is None:
+            continue
+        num_pr = p_pr.find(qn('w:numPr'))
+        if num_pr is None:
+            continue
+        numid_el = num_pr.find(qn('w:numId'))
+        ilvl_el = num_pr.find(qn('w:ilvl'))
+        if numid_el is None or ilvl_el is None:
+            continue
+        num_id = numid_el.get(qn('w:val'))
+        if num_id == '0':  # explicit "no numbering" override
+            continue
+        abstract_id = num_to_abstract.get(num_id)
+        if abstract_id is not None:
+            used_levels[(abstract_id, ilvl_el.get(qn('w:val')))] = paragraph.style.name
+
+    for abstract_num in numbering_element.findall(qn('w:abstractNum')):
+        abstract_id = abstract_num.get(qn('w:abstractNumId'))
+        for lvl in abstract_num.findall(qn('w:lvl')):
+            style_name = used_levels.get((abstract_id, lvl.get(qn('w:ilvl'))))
+            if style_name is None:
+                continue
+            target_font = heading_font if style_name == 'Heading 1' else subheading_font
+
+            rpr = lvl.find(qn('w:rPr'))
+            if rpr is None:
+                rpr = OxmlElement('w:rPr')
+                lvl.append(rpr)
+            rfonts = rpr.find(qn('w:rFonts'))
+            if rfonts is None:
+                rfonts = OxmlElement('w:rFonts')
+                rpr.append(rfonts)
+
+            if (rfonts.get(qn('w:ascii')) != target_font
+                    or rfonts.get(qn('w:hAnsi')) != target_font
+                    or rfonts.get(qn('w:cs')) != target_font):
+                rfonts.set(qn('w:ascii'), target_font)
+                rfonts.set(qn('w:hAnsi'), target_font)
+                rfonts.set(qn('w:cs'), target_font)
+                numbering_levels_fixed += 1
+
+    return normal_style_fixed, numbering_levels_fixed
+
+
 def _check_fonts(doc, rule):
     """Check and fix font issues in Word doc"""
     issues = []
@@ -179,31 +277,49 @@ def _check_fonts(doc, rule):
             })
 
     elif rule['check_value'] == 'Heading1Font':
-        # Applies the heading font to ALL heading levels (Heading 1, 2, 3, ...),
-        # so every heading is set to the expected face (e.g. Arial Nova Cond Light).
+        # Heading 1 uses the display heading font (e.g. Arial Nova Cond Light);
+        # subheadings (Heading 2 and below) use the body font (Arial) instead.
+        SUBHEADING_FONT = 'Arial'
         for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
             if _is_heading(paragraph):
                 style_name = paragraph.style.name
+                target_font = expected_font if style_name == 'Heading 1' else SUBHEADING_FONT
                 current_font = paragraph.runs[0].font.name if paragraph.runs else None
-                if current_font is None or current_font != expected_font:
+                if current_font is None or current_font != target_font:
                     if rule['auto_fix']:
                         for run in paragraph.runs:
-                            run.font.name = expected_font
+                            run.font.name = target_font
                         fixes.append({
                             'rule_name': rule.get('title', 'Heading Font'),
                             'rule_type': rule['rule_type'],
                             'found_value': str(current_font),
-                            'fixed_value': expected_font,
+                            'fixed_value': target_font,
                             'location': f'Paragraph {para_idx + 1} ({style_name})'
                         })
                     else:
                         issues.append({
                             'rule_name': rule.get('title', 'Heading Font'),
                             'rule_type': rule['rule_type'],
-                            'description': f"{style_name} has incorrect font: {current_font}",
+                            'description': f"{style_name} has incorrect font: {current_font} (expected {target_font})",
                             'location': f'Paragraph {para_idx + 1}',
                             'priority': rule.get('priority', 999)
                         })
+
+        if rule['auto_fix']:
+            normal_fixed, levels_fixed = _fix_heading_number_fonts(doc, expected_font, SUBHEADING_FONT)
+            if normal_fixed or levels_fixed:
+                detail = []
+                if normal_fixed:
+                    detail.append('Normal style font')
+                if levels_fixed:
+                    detail.append(f'{levels_fixed} numbering level{"s" if levels_fixed != 1 else ""}')
+                fixes.append({
+                    'rule_name': rule.get('title', 'Heading Font'),
+                    'rule_type': rule['rule_type'],
+                    'found_value': 'Auto-number prefix rendering in the wrong font',
+                    'fixed_value': f'{expected_font} (Heading 1) / {SUBHEADING_FONT} (subheadings)',
+                    'location': f'Numbering definitions ({", ".join(detail)})'
+                })
 
     return {'issues': issues, 'fixes': fixes}
 

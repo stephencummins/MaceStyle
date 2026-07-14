@@ -1,24 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validation Report - test.docx</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+            background: #f4f6f9;
+            color: #333;
+            line-height: 1.5;
+        }
+        .header {
+            background: #797574;
+            color: #fff;
+            padding: 32px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+        }
+        .brand {
+            margin-bottom: 18px;
+        }
+        .site-logo {
+            height: 52px;
+            width: auto;
+            display: block;
+        }
+        .header h1 {
+            font-size: 22px;
+            margin-bottom: 16px;
+            font-weight: 700;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 6px 18px;
+            background: #17a2b8;
+            color: #fff;
+            border-radius: 16px;
+            font-weight: 700;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .meta-info {
+            margin-top: 14px;
+            font-size: 13px;
+            opacity: 0.92;
+        }
+        .meta-info div { margin-bottom: 3px; }
+        .summary {
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .summary h2 {
+            font-size: 16px;
+            color: #4a4a4a;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4a4a4a;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+        }
+        .summary-card {
+            background: #f4f6f9;
+            padding: 18px;
+            border-radius: 6px;
+            text-align: center;
+            border-left: 4px solid #4a4a4a;
+        }
+        .summary-card .number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #4a4a4a;
+            margin-bottom: 4px;
+        }
+        .summary-card .label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .section {
+            background: #fff;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .section h2 {
+            font-size: 16px;
+            color: #4a4a4a;
+            margin-top: 0;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #4a4a4a;
+        }
+        .passed-section {
+            border-left: 4px solid #28a745;
+        }
+        .passed-section h2 {
+            color: #28a745;
+            border-bottom-color: #28a745;
+        }
+        .passed-section p {
+            color: #555;
+            padding: 20px 0;
+            text-align: center;
+            font-size: 15px;
+        }
+        .review-section {
+            border-left: 4px solid #f0ad4e;
+        }
+        .review-section h2 {
+            color: #e69500;
+            border-bottom-color: #f0ad4e;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        thead th {
+            background: #4a4a4a;
+            color: #fff;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        thead th:first-child { border-radius: 4px 0 0 0; }
+        thead th:last-child { border-radius: 0 4px 0 0; }
+        tbody td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e9ecef;
+            vertical-align: top;
+        }
+        tbody tr:hover { background: #f8f9fb; }
+        tbody tr:last-child td { border-bottom: none; }
+        .rule-type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #ededed;
+            color: #767676;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .rule-type-badge.ai {
+            background: linear-gradient(90deg, #00929F 0%, #892B90 100%);
+            color: #fff;
+            letter-spacing: 0.3px;
+        }
+        .ai-banner {
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.14);
+            border-left: 3px solid #90D2C5;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .ai-banner .spark { color: #FDB924; font-weight: 700; }
+        .summary-card.ai-card {
+            border-left-color: #00929F;
+            background: linear-gradient(180deg, #f2fbfc 0%, #f4f6f9 100%);
+        }
+        .summary-card.ai-card .number {
+            background: linear-gradient(90deg, #00929F 0%, #892B90 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .diff-before { background: #ffeef0; text-decoration: line-through; color: #b31d28; padding: 2px 4px; }
+        .diff-after { background: #e6ffec; color: #22863a; padding: 2px 4px; }
+        details { margin-bottom: 8px; }
+        summary { cursor: pointer; font-weight: 600; color: #4a4a4a; padding: 6px 0; }
+        .footer {
+            text-align: center;
+            margin-top: 28px;
+            padding: 16px;
+            color: #999;
+            font-size: 11px;
+        }
+        .footer span { color: #4a4a4a; font-weight: 600; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="brand">
+            <img class="site-logo" src="https://mace365.sharepoint.com/sites/MaceWayControlCentre/SiteAssets/MaceWay-Logo.png" alt="MaceWay Control Centre">
+        </div>
+        <h1>Mace Style Validation Report</h1>
+        <span class="status-badge">Validate Now</span>
+        <div class="meta-info">
+            <div style="margin-top:8px;font-size:14px;opacity:1;">2 issues found and auto-fixed. Document is compliant.</div>
+            <div style="margin-top:10px;"><strong>Document:</strong> test.docx</div>
+            
+            <div><strong>Validated:</strong> 14 July 2026 at 16:39:15 UTC</div>
+        </div>
+        
+    </div>
 
-    <html>
-    <head><title>Validation Report - test.docx</title></head>
-    <body>
-        <h1>Style Validation Report</h1>
-        <p><strong>File:</strong> test.docx</p>
-        <p><strong>Date:</strong> 2025-11-07 20:28:49 UTC</p>
-        
+    <div class="summary">
         <h2>Summary</h2>
-        <p>Issues Found: 2</p>
-        <p>Issues Fixed: 2</p>
-        
-        <h2>Issues Detected</h2>
-        <ul>
-            <li>Heading 1 has incorrect font: Times New Roman</li><li>Heading 1 color incorrect: FF0000</li>
-        </ul>
-        
-        <h2>Fixes Applied</h2>
-        <ul>
-            <li>Fixed Heading 1 font to Arial</li><li>Fixed Heading 1 color to (0, 51, 153)</li>
-        </ul>
-    </body>
-    </html>
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="number">2</div>
+                <div class="label">Issues Found</div>
+            </div>
+            <div class="summary-card">
+                <div class="number">2</div>
+                <div class="label">Auto-Fixed</div>
+            </div>
+            
+            <div class="summary-card" style="border-left-color: #28a745;">
+                <div class="number" style="color: #28a745;">0</div>
+                <div class="label">Remaining</div>
+            </div>
+        </div>
+    </div>
+
     
+    <div class="section">
+            <h2>Changes Made (2)</h2>
+            <table>
+                <thead><tr>
+                    <th>Rule Name</th><th>Rule Type</th><th>What Was Found</th><th>What It Was Changed To</th><th>Location</th>
+                </tr></thead>
+                <tbody><tr>
+                <td>Heading 1 Font</td>
+                <td><span class="rule-type-badge">Font</span></td>
+                <td>Times New Roman</td>
+                <td>Arial</td>
+                <td>Paragraph 1 (Heading 1)</td>
+            </tr><tr>
+                <td>Heading 1 Color</td>
+                <td><span class="rule-type-badge">Color</span></td>
+                <td>FF0000</td>
+                <td>(0, 51, 153)</td>
+                <td>Paragraph 1 (Heading 1)</td>
+            </tr></tbody>
+            </table>
+        </div>
+    
+    
+
+    <div class="footer">
+        <span>Mace Style Validator</span> &middot; Control Centre Writing Style Guide<br>
+        Powered by Azure Functions &amp; AI
+    </div>
+</body>
+</html>

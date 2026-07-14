@@ -215,7 +215,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 site_id = get_site_id(token)
                 remaining = [i for i in result['issues'] if isinstance(i, dict)]
                 if len(remaining) == 0:
-                    result_status = "Passed"
+                    # Not "Passed" — needs a human to actually confirm it.
+                    result_status = "Validate Now"
                 elif len(result['fixes_applied']) > 0:
                     result_status = "Review Required"
                 else:
@@ -256,7 +257,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # 10. Update final validation status (skipped when the flow owns writes)
         remaining = [i for i in result['issues'] if isinstance(i, dict)]
         if len(remaining) == 0:
-            final_status = "Passed"
+            # Not "Passed" — needs a human to actually confirm it.
+            final_status = "Validate Now"
         elif len(result['fixes_applied']) > 0:
             final_status = "Review Required"
         else:
