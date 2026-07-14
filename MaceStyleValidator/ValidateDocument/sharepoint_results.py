@@ -16,7 +16,10 @@ def save_validation_result(token, site_id, filename, issues_count, fixes_count, 
         filename: Name of validated document
         issues_count: Number of issues found
         fixes_count: Number of fixes applied
-        status: Validation status ("Passed", "Failed", "Warning")
+        status: Validation status. Must be one of the Status choice-column values:
+            "Auto-Fixed — Awaiting Review", "Passed", "Review Required", "Failed".
+            SharePoint rejects anything else, and the caller swallows the error —
+            so an unlisted value silently drops the audit record.
         html_report: HTML report content (stored in field)
         report_url: Optional URL to uploaded HTML report file
 

@@ -47,7 +47,9 @@ def generate_report(file_name, issues, fixes_applied, document_url=None, library
     if remaining_count == 0:
         # Not "Passed" — the AI pass ran automatically with no human review yet.
         # "Passed" is reserved for after someone actually confirms the result.
-        status = "Validate Now"
+        # NB: must not be "Validate Now" — that value already means "a human has
+        # asked for this to be validated" and is what triggers a run.
+        status = "Auto-Fixed — Awaiting Review"
         status_color = "#17a2b8"
     elif fixes_count > 0:
         status = "Review Required"

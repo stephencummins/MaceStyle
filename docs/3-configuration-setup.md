@@ -268,11 +268,18 @@ This app will authenticate the Azure Function to access SharePoint.
    - Type: Choice
    - Choices:
      ```
+     Auto-Fixed — Awaiting Review
      Passed
      Review Required
      Failed
      ```
    - Default: (none)
+
+   > **Important:** `Auto-Fixed — Awaiting Review` must be present. It is the status the
+   > Function writes whenever a document validates with no issues left to fix. If it is missing
+   > from this choice list, SharePoint rejects the write, the exception is swallowed, and **no
+   > Validation Results entry is created at all** for those documents — silently losing the
+   > audit record for the most common outcome.
 
    **Column 4: IssuesFound**
    - Type: Single line of text
@@ -312,6 +319,7 @@ This app will authenticate the Azure Function to access SharePoint.
      Not Validated
      Validate Now
      Validating...
+     Auto-Fixed — Awaiting Review
      Passed
      Review Required
      Failed
@@ -319,9 +327,17 @@ This app will authenticate the Azure Function to access SharePoint.
    - Default: Not Validated
    - Colour coding (optional):
      - Validating... = Yellow
+     - Auto-Fixed — Awaiting Review = Teal
      - Passed = Green
      - Review Required = Amber
      - Failed = Red
+
+   > **Important:** `Validate Now` is an **input-only** value — a human sets it to request a
+   > validation run, and the flow triggers on it. The Function must never write it back as a
+   > result, or completing a validation would re-arm its own trigger. When validation finishes
+   > with nothing left to fix, the Function writes `Auto-Fixed — Awaiting Review` (not `Passed`,
+   > which is reserved for a human sign-off). If this choice is missing from the column,
+   > SharePoint rejects the write and the result is silently lost.
 
    **Column 2: ValidationResultLink**
    - Type: Hyperlink or Picture

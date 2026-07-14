@@ -50,7 +50,9 @@ graph LR
 **Purpose:** Store documents and trigger validation
 
 **Columns:**
-- `ValidationStatus` (Choice): Not Validated, Validate Now, Validating..., Passed, Review Required, Failed
+- `ValidationStatus` (Choice): Not Validated, Validate Now, Validating..., Auto-Fixed — Awaiting Review, Passed, Review Required, Failed
+  - `Validate Now` is an **input** value only (a human sets it to request a run) — the Function must never write it back.
+  - `Auto-Fixed — Awaiting Review` is the terminal state when validation found nothing left to fix but no human has confirmed the result yet. `Passed` is reserved for after a human signs off.
 - `ValidationResultLink` (Hyperlink): Link to Validation Results list item
 
 **Triggers:** Logic App (or Power Automate) on file create/modify
