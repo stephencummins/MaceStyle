@@ -783,7 +783,7 @@ def create_style_rules():
         {
             "Title": "Reference codes must be uppercase (e.g., DMT-ACT-001)",
             "RuleType": "Capitalisation",
-            "DocumentType": "Visio",
+            "DocumentType": "All",
             "CheckValue": "ReferenceCodeCase",
             "ExpectedValue": "UPPERCASE",
             "AutoFix": True,

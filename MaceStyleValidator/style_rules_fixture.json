@@ -942,7 +942,7 @@
   {
     "title": "Reference codes must be uppercase (e.g., DMT-ACT-001)",
     "rule_type": "Capitalisation",
-    "doc_type": "Visio",
+    "doc_type": "All",
     "check_value": "ReferenceCodeCase",
     "expected_value": "UPPERCASE",
     "auto_fix": true,
