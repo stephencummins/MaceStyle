@@ -1195,7 +1195,7 @@
     "doc_type": "All",
     "check_value": "SubsidiaryHeadings",
     "expected_value": "SentenceCase",
-    "auto_fix": false,
+    "auto_fix": true,
     "use_ai": false,
     "priority": 30
   },
@@ -1215,7 +1215,7 @@
     "doc_type": "All",
     "check_value": "TimeFormat",
     "expected_value": "HH:MM",
-    "auto_fix": false,
+    "auto_fix": true,
     "use_ai": false,
     "priority": 20
   },

@@ -863,7 +863,7 @@ def check_reference_code_case(doc, rule):
 _NONE = {'issues': [], 'fixes': [], 'changes': []}
 
 # -- Punctuation --
-_TIME_12H = re.compile(r'\b\d{1,2}(?::\d{2})?\s*[ap]\.?m\.?\b', re.I)
+_TIME_12H = re.compile(r'\b(\d{1,2})(?:[:.](\d{2}))?\s*([ap])\.?m\.?\b', re.I)
 _NUMERIC_DATE = re.compile(r'\b(?:\d{1,2}[/.]\d{1,2}[/.]\d{2,4}|\d{4}-\d{1,2}-\d{1,2})\b')
 _YEAR_RANGE = re.compile(r'\b(?:19|20)\d{2}\s*(?:[-–—]\s*(?:19|20)\d{2}|to\s+(?:19|20)\d{2})\b', re.I)
 _SLASH_SPACED = re.compile(r'\s*/\s*')
@@ -1020,6 +1020,58 @@ def check_date_format(doc, rule, table=False):
     return _flag_regex(doc, _NUMERIC_DATE, label)
 
 
+def _time_to_24h(m):
+    """Convert a 12-hour am/pm time to 24-hour HH:MM. Deterministic and
+    unambiguous, so safe to auto-apply. Implausible results are left as-is."""
+    hour = int(m.group(1))
+    minute = m.group(2) or "00"
+    meridiem = m.group(3).lower()
+    if meridiem == "p" and hour != 12:
+        hour += 12
+    elif meridiem == "a" and hour == 12:
+        hour = 0
+    if hour > 23 or int(minute) > 59:
+        return m.group(0)
+    return f"{hour:02d}:{minute}"
+
+
+def _check_subsidiary_headings(doc, rule):
+    """Subsidiary headings (Heading 2 and deeper) use sentence case: the first
+    letter is capitalised. Only that unambiguous first-letter case is handled
+    deterministically; lowercasing wrongly-capitalised interior words (e.g.
+    'Audit Review' -> 'Audit review') needs proper-noun judgement and is left
+    to the AI path."""
+    issues, fixes, changes = [], [], []
+    auto = rule.get("auto_fix")
+    issue_count = fix_count = 0
+    for para_idx, paragraph in enumerate(iter_all_paragraphs(doc)):
+        style = (paragraph.style.name or "") if paragraph.style else ""
+        level = re.match(r"Heading\s+(\d+)", style)
+        if not level or int(level.group(1)) < 2:
+            continue
+        for run in paragraph.runs:
+            if not run.text:
+                continue
+            i = next((k for k, c in enumerate(run.text) if c.isalpha()), None)
+            if i is None:
+                continue
+            if run.text[i].islower():
+                issue_count += 1
+                if auto:
+                    before = run.text
+                    run.text = run.text[:i] + run.text[i].upper() + run.text[i + 1:]
+                    changes.append({"before": before, "after": run.text,
+                                    "location": f"Paragraph {para_idx + 1}"})
+                    fix_count += 1
+            break
+    if issue_count and not auto:
+        issues.append(f"Found {issue_count} subsidiary heading(s) starting with a "
+                      f"lowercase letter - capitalise the first letter")
+    if fix_count:
+        fixes.append(f"Capitalised the first letter of {fix_count} subsidiary heading(s)")
+    return {"issues": issues, "fixes": fixes, "changes": changes}
+
+
 # check_value -> handler. Detection-only handlers use _flag_regex; a couple
 # auto-fix where the live rule sets AutoFix and the correction is unambiguous.
 _LANGUAGE_CHECKS = {
@@ -1028,7 +1080,7 @@ _LANGUAGE_CHECKS = {
     'PreferMetric': lambda d, r: _flag_regex(d, _IMPERIAL, "imperial unit — use metric where possible"),
 }
 _PUNCTUATION_CHECKS = {
-    'TimeFormat': lambda d, r: _flag_regex(d, _TIME_12H, "12-hour clock time — use 24-hour HH:MM (e.g. 09:00, 18:25)"),
+    'TimeFormat': lambda d, r: _replace_regex(d, r, _TIME_12H, _time_to_24h, "12-hour clock time — use 24-hour HH:MM (e.g. 09:00, 18:25)"),
     'DateFormat_Text': lambda d, r: check_date_format(d, r, table=False),
     'DateFormat_Table': lambda d, r: check_date_format(d, r, table=True),
     'YearIntervalFormat': lambda d, r: _flag_regex(d, _YEAR_RANGE, "year range — use YYYY-YY (e.g. 2019-20)"),
@@ -1053,6 +1105,7 @@ _GRAMMAR_CHECKS = {
 _CAPITALISATION_CHECKS = {
     'ProperNounDerivations': _check_proper_noun_derivations,
     'NoEmphasisCaps': lambda d, r: _flag_regex(d, _EMPHASIS_CAPS, "consecutive ALL-CAPS words used for emphasis — use normal case"),
+    'SubsidiaryHeadings': _check_subsidiary_headings,
 }
 
 

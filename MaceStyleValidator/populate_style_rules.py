@@ -560,8 +560,8 @@ def create_style_rules():
             "DocumentType": "All",
             "CheckValue": "TimeFormat",
             "ExpectedValue": "HH:MM",
-            "AutoFix": False,
-            "UseAI": False,  # Not implemented yet
+            "AutoFix": True,
+            "UseAI": False,  # Deterministic: 12h am/pm -> 24h HH:MM
             "Priority": 20
         },
 
@@ -608,8 +608,8 @@ def create_style_rules():
             "DocumentType": "All",
             "CheckValue": "SubsidiaryHeadings",
             "ExpectedValue": "SentenceCase",
-            "AutoFix": False,
-            "UseAI": False,  # Not implemented yet
+            "AutoFix": True,
+            "UseAI": False,  # Deterministic: capitalise first letter
             "Priority": 30
         },
         {
